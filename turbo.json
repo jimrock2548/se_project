@@ -16,6 +16,16 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "web:dev": {
+      "dependsOn": [],
+      "cache": false,
+      "persistent": true
+    },
+    "api:dev": {
+      "dependsOn": [],
+      "cache": false,
+      "persistent": true
     }
   }
 }
