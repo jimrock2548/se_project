@@ -23,7 +23,7 @@ function Page() {
   return (
     <div className="p-6  min-h-screen flex items-center justify-center">
       <div className="bg-white shadow-lg rounded-lg overflow-hidden max-w-lg w-full">
-        <h1 className="text-4xl font-bold text-primary text-center py-6 bg-gradient-to-r  text-black">
+        <h1 className="text-4xl font-bold text-center py-6 bg-gradient-to-r  text-black">
           Choose a Payment
         </h1>
         <div className="p-6 space-y-6 text-center">

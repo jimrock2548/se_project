@@ -58,7 +58,7 @@ function RentalBill() {
 
         {/* ปุ่มเลือกชำระเงิน */}
         <div className="mt-6 text-center">
-          <Link href='/Choose_payment'>
+          <Link href='/test/choose_payment'>
             <button className="btn btn-primary w-full text-white">เลือกวิธีจ่าย</button>
           </Link>
         </div>
