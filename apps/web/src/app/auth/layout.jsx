@@ -171,22 +171,22 @@ export default function RootLayout({ children }) {
 
               {/* Sidebar Menu */}
               <li className="w-full">
-                <Link href="/" className="hover:bg-base-300 rounded-lg text-lg">
+                <Link href="/auth/home" className="hover:bg-base-300 rounded-lg text-lg">
                   Home
                 </Link>
               </li>
               <li className="w-full">
-                <Link href="/Payment" className="hover:bg-base-300 rounded-lg text-lg">
+                <Link href="/auth/payment" className="hover:bg-base-300 rounded-lg text-lg">
                   Bills
                 </Link>
               </li>
               <li className="w-full">
-                <Link href="/Chat" className="hover:bg-base-300 rounded-lg text-lg">
+                <Link href="/auth/chat" className="hover:bg-base-300 rounded-lg text-lg">
                   Chat
                 </Link>
               </li>
               <li className="w-full">
-                <Link href="/Report" className="hover:bg-base-300 rounded-lg text-lg">
+                <Link href="/auth/report" className="hover:bg-base-300 rounded-lg text-lg">
                   Report
                 </Link>
               </li>
