@@ -154,7 +154,7 @@ export default function RootLayout({ children }) {
           </div>
 
           {/* Sidebar Content */}
-          <div className="drawer-side">
+          <div className="drawer-side z-50">
             <label htmlFor="my-drawer" className="drawer-overlay"></label>
             <ul className="menu bg-base-100 text-base-content min-h-screen w-80 p-4 flex flex-col items-center">
               {/* Profile Image */}
