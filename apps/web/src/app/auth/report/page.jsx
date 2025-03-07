@@ -133,15 +133,15 @@ function page() {
             <fieldset className="fieldset p-4 bg-base-100 border border-base-300 rounded-box md:w-80">
               <legend className="fieldset-legend">Options</legend>
               <label className="fieldset-label">
-                <input type="checkbox" className="checkbox" />
+                <input type="radio" name='radio-1' className="checkbox" defaultChecked/>
                 รบกวน
               </label>
               <label className="fieldset-label">
-                <input type="checkbox" className="checkbox" />
+                <input type="radio" name='radio-1' className="checkbox"/>
                 พฤติกรรมไม่เหมาะสม
               </label>
               <label className="fieldset-label">
-                <input type="checkbox" className="checkbox" />
+                <input type="radio" name='radio-1' className="checkbox"/>
                 อื่นๆ
               </label>
             </fieldset>
@@ -151,7 +151,7 @@ function page() {
               <legend className="fieldset-legend">Message here</legend>
               <textarea className="textarea text-base-content h-24 md:w-full" placeholder="|"></textarea>
               <div className="fieldset-label">
-                <button class="btn">Submit</button>
+                <button className="btn">Submit</button>
               </div>
               <div className='text-red-500 text-lg text-center p-4'>
                 *****การรายงานของคุณจะไม่ถูกเปิดเผยว่าคุณเป็นผู้รายงาน******
