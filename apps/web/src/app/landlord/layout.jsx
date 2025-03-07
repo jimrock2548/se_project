@@ -75,7 +75,7 @@ export default function RootLayout({ children }) {
 
               </div>
 
-              <div className="flex-1 text-base-content text-3xl font-bold p-2">Sigma Boy</div>
+              <div className="flex-1 text-base-content text-3xl font-bold p-2">S.T. APARTMENT</div>
 
                {/* Theme Changer */}
                <label className="swap swap-rotate">
@@ -130,17 +130,17 @@ export default function RootLayout({ children }) {
                   >
                     <li>
                       <Link href="/Login" className="hover:bg-info-content rounded-lg">
-                        Profile
+                        หน้าแรก
                       </Link>
                     </li>
                     <li>
                       <Link href="/Login" className="hover:bg-info-content rounded-lg">
-                        Setting
+                      กรอกใบชำระค่าเช่า
                       </Link>
                     </li>
                     <li>
                       <Link href="/Login" className="hover:bg-info-content rounded-lg">
-                        Logout
+                      ตั้งค่า
                       </Link>
                     </li>
                   </ul>
@@ -166,39 +166,34 @@ export default function RootLayout({ children }) {
 
               {/* Profile Name */}
               <div className="m-4 text-center">
-                <div className="text-2xl font-bold">นาย จุฑาวัชร บุษษะ</div>
+                <div className="text-2xl font-bold">ผู้ดูแลหอพัก</div>
               </div>
 
               {/* Sidebar Menu */}
               <li className="w-full">
-                <Link href="/auth/home" className="hover:bg-base-300 rounded-lg text-lg">
-                  Home
+                <Link href="/landlord/home" className="hover:bg-base-300 rounded-lg text-lg p-3">
+                  หน้าแรก
                 </Link>
               </li>
               <li className="w-full">
-                <Link href="/auth/payment" className="hover:bg-base-300 rounded-lg text-lg">
-                  Bills
+                <Link href="/auth/payment" className="hover:bg-base-300 rounded-lg text-lg p-3">
+                  กรอกใบชำระค่าเช่า
                 </Link>
               </li>
               <li className="w-full">
-                <Link href="/auth/chat" className="hover:bg-base-300 rounded-lg text-lg">
-                  Chat
-                </Link>
-              </li>
-              <li className="w-full">
-                <Link href="/auth/report" className="hover:bg-base-300 rounded-lg text-lg">
-                  Report
+                <Link href="/auth/payment" className="hover:bg-base-300 rounded-lg text-lg p-3">
+                  ตั้งค่า
                 </Link>
               </li>
               <div className="space-x-1 flex items-baseline">
                 <div className="pt-36">
                   <button className="btn btn-outline btn-primary">
-                    <Link href='/Login'>Login</Link>
+                    <Link href='/Login'>เข้าสู่ระบบ</Link>
                   </button>
                 </div>
                 <div className="pt-5">
                   <button className="btn btn-outline btn-primary">
-                    <Link href='/Register'>Register</Link>
+                    <Link href='/Register'>ลงทะเบียน</Link>
                   </button>
                 </div>
               </div>
