@@ -55,6 +55,7 @@ export default function RootLayout({ children }) {
           {/* Main Content */}
           <div className="drawer-content flex flex-col">
             {/* Navbar */}
+            
             <div className="navbar bg-base-100 p-4 shadow-md">
               <div className="flex-none">
                 <label htmlFor="my-drawer" className="btn btn-square btn-ghost">
@@ -75,7 +76,7 @@ export default function RootLayout({ children }) {
 
               </div>
 
-              <div className="flex-1 text-base-content text-3xl font-bold p-2">Sigma Boy</div>
+              <div className="flex-1 text-base-content text-3xl font-bold p-2">S.T. APARTMENT</div>
 
                {/* Theme Changer */}
                <label className="swap swap-rotate">
@@ -130,17 +131,22 @@ export default function RootLayout({ children }) {
                   >
                     <li>
                       <Link href="/Login" className="hover:bg-info-content rounded-lg">
-                        Profile
+                        หน้าแรก
                       </Link>
                     </li>
                     <li>
                       <Link href="/Login" className="hover:bg-info-content rounded-lg">
-                        Setting
+                        ตั้งค่า
                       </Link>
                     </li>
                     <li>
                       <Link href="/Login" className="hover:bg-info-content rounded-lg">
-                        Logout
+                        เข้าสู่ระบบ
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/Login" className="hover:bg-info-content rounded-lg">
+                        ลงทะเบียน
                       </Link>
                     </li>
                   </ul>
@@ -154,9 +160,12 @@ export default function RootLayout({ children }) {
           </div>
 
           {/* Sidebar Content */}
+          
           <div className="drawer-side z-50">
             <label htmlFor="my-drawer" className="drawer-overlay"></label>
+            
             <ul className="menu bg-base-100 text-base-content min-h-screen w-80 p-4 flex flex-col items-center">
+            <div className="text-base-content text-3xl font-bold p-2 border-b-1 border-base-300 pt-1">S.T. APARTMENT</div>
               {/* Profile Image */}
               <img
                 className="w-36 h-36 rounded-full object-cover mt-4"
@@ -165,40 +174,48 @@ export default function RootLayout({ children }) {
               />
 
               {/* Profile Name */}
+              
               <div className="m-4 text-center">
-                <div className="text-2xl font-bold">นาย จุฑาวัชร บุษษะ</div>
+                <div className="text-2xl font-bold pb-2">นาย จุฑาวัชร บุษษะ</div>
+                <p><d>เลขที่ห้อง :</d> 123</p>
               </div>
 
               {/* Sidebar Menu */}
-              <li className="w-full">
+              <li className="w-full border-t-1 border-base-300 pt-2">
                 <Link href="/auth/home" className="hover:bg-base-300 rounded-lg text-lg">
-                  Home
+                🏠 หน้าแรก
                 </Link>
               </li>
-              <li className="w-full">
+              <li className="w-full ">
                 <Link href="/auth/payment" className="hover:bg-base-300 rounded-lg text-lg">
-                  Bills
+                💵 ชำระค่าเช่า
                 </Link>
               </li>
-              <li className="w-full">
+              <li className="w-full py-1">
                 <Link href="/auth/chat" className="hover:bg-base-300 rounded-lg text-lg">
-                  Chat
+                ✉️ แชท
                 </Link>
               </li>
-              <li className="w-full">
+             
+              <li className="w-full border-t-1 border-base-300 pt-1">
                 <Link href="/auth/report" className="hover:bg-base-300 rounded-lg text-lg">
-                  Report
+                📢 รายงาน
+                </Link>
+              </li>
+              <li className="w-full ">
+                <Link href="/auth/report" className="hover:bg-base-300 rounded-lg text-lg">
+                ⚙️ ตั้งค่า
                 </Link>
               </li>
               <div className="space-x-1 flex items-baseline">
-                <div className="pt-36">
+                <div className="pt-28">
                   <button className="btn btn-outline btn-primary">
-                    <Link href='/Login'>Login</Link>
+                    <Link href='/Login'>เข้าสู่ระบบ</Link>
                   </button>
                 </div>
                 <div className="pt-5">
                   <button className="btn btn-outline btn-primary">
-                    <Link href='/Register'>Register</Link>
+                    <Link href='/Register'>ลงทะเบียน</Link>
                   </button>
                 </div>
               </div>
