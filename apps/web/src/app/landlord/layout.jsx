@@ -157,6 +157,7 @@ export default function RootLayout({ children }) {
           <div className="drawer-side z-50">
             <label htmlFor="my-drawer" className="drawer-overlay"></label>
             <ul className="menu bg-base-100 text-base-content min-h-screen w-80 p-4 flex flex-col items-center">
+            <div className="text-base-content text-3xl font-bold p-2 pt-1">S.T. APARTMENT</div>
               {/* Profile Image */}
               <img
                 className="w-36 h-36 rounded-full object-cover mt-4"
@@ -170,23 +171,23 @@ export default function RootLayout({ children }) {
               </div>
 
               {/* Sidebar Menu */}
-              <li className="w-full">
-                <Link href="/landlord/home" className="hover:bg-base-300 rounded-lg text-lg p-3">
-                  หน้าแรก
+              <li className="w-full border-t-1 border-base-300 pt-1">
+                <Link href="/landlord/home" className="hover:bg-base-300 rounded-lg text-lg">
+                🏠 ประกาศ / รายงาน
                 </Link>
               </li>
-              <li className="w-full">
-                <Link href="/auth/payment" className="hover:bg-base-300 rounded-lg text-lg p-3">
-                  กรอกใบชำระค่าเช่า
+              <li className="w-full pb-1">
+                <Link href="/landlord/billsform" className="hover:bg-base-300 rounded-lg text-lg">
+                📋 กรอกใบชำระค่าเช่า
                 </Link>
               </li>
-              <li className="w-full">
-                <Link href="/auth/payment" className="hover:bg-base-300 rounded-lg text-lg p-3">
-                  ตั้งค่า
+              <li className="w-full border-t-1 border-base-300 pt-1">
+                <Link href="/auth/payment" className="hover:bg-base-300 rounded-lg text-lg">
+                ⚙️ ตั้งค่า
                 </Link>
               </li>
               <div className="space-x-1 flex items-baseline">
-                <div className="pt-36">
+                <div className="pt-28">
                   <button className="btn btn-outline btn-primary">
                     <Link href='/Login'>เข้าสู่ระบบ</Link>
                   </button>

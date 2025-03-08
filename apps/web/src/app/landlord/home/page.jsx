@@ -40,25 +40,25 @@ function Page() {
 
                 {/* Announcement card */}
                 <div className="md:col-span-2 p-6 rounded-lg shadow-2xl text-base-content w-full">
-                <h1 className="text-4xl font-bold text-base-content mb-6">Announcement</h1>
+                <h1 className="text-4xl font-bold text-base-content mb-6">ประกาศ</h1>
                     <div className="mb-4 md:flex">
                         <fieldset className="fieldset pr-4">
-                            <legend className="fieldset-legend">Title</legend>
+                            <legend className="fieldset-legend">หัวข้อ</legend>
                             <input type="text" className="input" placeholder="Title here..." />
                         </fieldset>
 
                         <fieldset className="fieldset pr-4">
-                            <legend className="fieldset-legend">Date</legend>
+                            <legend className="fieldset-legend">วันที่</legend>
                             <input type="date" className="input" />
                         </fieldset>
 
                         <fieldset className="fieldset pr-4">
-                            <legend className="fieldset-legend">Massage</legend>
+                            <legend className="fieldset-legend">ข้อความ</legend>
                             <input type="text" className="input md:pr-24" placeholder="Massage here..." />
                         </fieldset>
                     </div>
                     <div className="pb-7">
-                        <button className="btn">Submit</button>
+                        <button className="btn">ตกลง</button>
                     </div>
                     {/* Announcements List */}
                     <div className="overflow-y-scroll h-96 ">
@@ -74,7 +74,7 @@ function Page() {
                 {/* Report card */}
                 <div className="card-body shadow-2xl w-2xl rounded-lg">
                     <div className="flex items-center rounded-lg">
-                        <div className="text-4xl font-bold text-base-content mb-6">Report</div>
+                        <div className="text-4xl font-bold text-base-content mb-6">รายงาน</div>
                     </div>
                     <div className="overflow-y-scroll h-96">
                         {data.map((dataroom, index) => (
