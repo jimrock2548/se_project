@@ -2,7 +2,7 @@
 import localFont from "next/font/local";
 import "../globals.css";
 import Link from "next/link";
-import { useEffect ,useState} from 'react'
+import { useEffect, useState } from 'react'
 import { themeChange } from 'theme-change'
 
 const geistSans = localFont({
@@ -77,8 +77,8 @@ export default function RootLayout({ children }) {
 
               <div className="flex-1 text-base-content text-3xl font-bold p-2">S.T. APARTMENT</div>
 
-               {/* Theme Changer */}
-               <label className="swap swap-rotate">
+              {/* Theme Changer */}
+              <label className="swap swap-rotate">
                 {/* this hidden checkbox controls the state */}
                 <input
                   type="checkbox"
@@ -135,17 +135,17 @@ export default function RootLayout({ children }) {
                     </li>
                     <li>
                       <Link href="/landlord/billsform" className="hover:bg-info-content rounded-lg">
-                      กรอกใบชำระค่าเช่า
+                        กรอกใบชำระค่าเช่า
                       </Link>
                     </li>
                     <li>
                       <Link href="/landlord/list" className="hover:bg-info-content rounded-lg">
-                      รายชื่อผู้อยู่อาศัย
+                        รายชื่อผู้อยู่อาศัย
                       </Link>
                     </li>
                     <li>
-                      <Link href="/landlord/home" className="hover:bg-info-content rounded-lg">
-                      ตั้งค่า
+                      <Link href="/landlord/setting_" className="hover:bg-info-content rounded-lg">
+                        ตั้งค่า
                       </Link>
                     </li>
                   </ul>
@@ -162,7 +162,7 @@ export default function RootLayout({ children }) {
           <div className="drawer-side z-50">
             <label htmlFor="my-drawer" className="drawer-overlay"></label>
             <ul className="menu bg-base-100 text-base-content min-h-screen w-80 p-4 flex flex-col items-center">
-            <div className="text-base-content text-3xl font-bold p-2 pt-1">S.T. APARTMENT</div>
+              <div className="text-base-content text-3xl font-bold p-2 pt-1">S.T. APARTMENT</div>
               {/* Profile Image */}
               <img
                 className="w-36 h-36 rounded-full object-cover mt-4"
@@ -178,22 +178,22 @@ export default function RootLayout({ children }) {
               {/* Sidebar Menu */}
               <li className="w-full border-t-1 border-base-300 pt-1">
                 <Link href="/landlord/home" className="hover:bg-base-300 rounded-lg text-lg">
-                🏠 ประกาศ / รายงาน
+                  🏠 ประกาศ / รายงาน
                 </Link>
               </li>
               <li className="w-full pb-1">
                 <Link href="/landlord/billsform" className="hover:bg-base-300 rounded-lg text-lg">
-                📋 กรอกใบชำระค่าเช่า
+                  📋 กรอกใบชำระค่าเช่า
                 </Link>
               </li>
               <li className="w-full pb-1">
                 <Link href="/landlord/list" className="hover:bg-base-300 rounded-lg text-lg">
-                👤 รายชื่อผู้อยู่อาศัย
+                  👤 รายชื่อผู้อยู่อาศัย
                 </Link>
               </li>
               <li className="w-full border-t-1 border-base-300 pt-1">
-                <Link href="/auth/payment" className="hover:bg-base-300 rounded-lg text-lg">
-                ⚙️ ตั้งค่า
+                <Link href="/landlord/setting_" className="hover:bg-base-300 rounded-lg text-lg">
+                  ⚙️ ตั้งค่า
                 </Link>
               </li>
               <div className="space-x-1 flex items-baseline">
