@@ -2,7 +2,7 @@
 import localFont from "next/font/local";
 import "../globals.css";
 import Link from "next/link";
-import { useEffect ,useState} from 'react'
+import { useEffect, useState } from 'react'
 import { themeChange } from 'theme-change'
 
 const geistSans = localFont({
@@ -55,7 +55,7 @@ export default function RootLayout({ children }) {
           {/* Main Content */}
           <div className="drawer-content flex flex-col">
             {/* Navbar */}
-            
+
             <div className="navbar bg-base-100 p-4 shadow-md">
               <div className="flex-none">
                 <label htmlFor="my-drawer" className="btn btn-square btn-ghost">
@@ -78,8 +78,8 @@ export default function RootLayout({ children }) {
 
               <div className="flex-1 text-base-content text-3xl font-bold p-2">S.T. APARTMENT</div>
 
-               {/* Theme Changer */}
-               <label className="swap swap-rotate">
+              {/* Theme Changer */}
+              <label className="swap swap-rotate">
                 {/* this hidden checkbox controls the state */}
                 <input
                   type="checkbox"
@@ -130,12 +130,27 @@ export default function RootLayout({ children }) {
                     className="dropdown-content menu bg-base-content text-base-100 rounded-box w-52 p-2 shadow"
                   >
                     <li>
-                      <Link href="/Login" className="hover:bg-info-content rounded-lg">
+                      <Link href="/auth/home" className="hover:bg-info-content rounded-lg">
                         หน้าแรก
                       </Link>
                     </li>
                     <li>
-                      <Link href="/Login" className="hover:bg-info-content rounded-lg">
+                      <Link href="/auth/payment" className="hover:bg-info-content rounded-lg">
+                        ชำระค่าเช่า
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/auth/chat" className="hover:bg-info-content rounded-lg">
+                        แชท
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/auth/report" className="hover:bg-info-content rounded-lg">
+                        รายงาน
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/auth/setting_" className="hover:bg-info-content rounded-lg">
                         ตั้งค่า
                       </Link>
                     </li>
@@ -160,12 +175,12 @@ export default function RootLayout({ children }) {
           </div>
 
           {/* Sidebar Content */}
-          
+
           <div className="drawer-side z-50">
             <label htmlFor="my-drawer" className="drawer-overlay"></label>
-            
+
             <ul className="menu bg-base-100 text-base-content min-h-screen w-80 p-4 flex flex-col items-center">
-            <div className="text-base-content text-3xl font-bold p-2 pt-1">S.T. APARTMENT</div>
+              <div className="text-base-content text-3xl font-bold p-2 pt-1">S.T. APARTMENT</div>
               {/* Profile Image */}
               <img
                 className="w-36 h-36 rounded-full object-cover mt-4"
@@ -174,7 +189,7 @@ export default function RootLayout({ children }) {
               />
 
               {/* Profile Name */}
-              
+
               <div className="m-4 text-center">
                 <div className="text-2xl font-bold pb-2">นาย จุฑาวัชร บุษษะ</div>
                 <p><d>เลขที่ห้อง :</d> 123</p>
@@ -183,28 +198,28 @@ export default function RootLayout({ children }) {
               {/* Sidebar Menu */}
               <li className="w-full border-t-1 border-base-300 pt-2">
                 <Link href="/auth/home" className="hover:bg-base-300 rounded-lg text-lg">
-                🏠 หน้าแรก
+                  🏠 หน้าแรก
                 </Link>
               </li>
               <li className="w-full ">
                 <Link href="/auth/payment" className="hover:bg-base-300 rounded-lg text-lg">
-                💵 ชำระค่าเช่า
+                  💵 ชำระค่าเช่า
                 </Link>
               </li>
               <li className="w-full py-1">
                 <Link href="/auth/chat" className="hover:bg-base-300 rounded-lg text-lg">
-                ✉️ แชท
+                  ✉️ แชท
                 </Link>
               </li>
-             
+
               <li className="w-full border-t-1 border-base-300 pt-1">
                 <Link href="/auth/report" className="hover:bg-base-300 rounded-lg text-lg">
-                📢 รายงาน
+                  📢 รายงาน
                 </Link>
               </li>
               <li className="w-full ">
-                <Link href="/auth/report" className="hover:bg-base-300 rounded-lg text-lg">
-                ⚙️ ตั้งค่า
+                <Link href="/auth/setting_" className="hover:bg-base-300 rounded-lg text-lg">
+                  ⚙️ ตั้งค่า
                 </Link>
               </li>
               <div className="space-x-1 flex items-baseline">
