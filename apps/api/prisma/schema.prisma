@@ -27,12 +27,13 @@ model Room {
 model Residents {
   id        Int     @id @default(autoincrement())
   username  String  @unique
+  email     String  @unique
   password  String
-  firstname String
-  lastname  String
+  firstname String?
+  lastname  String?
   internet  Boolean @default(false)
   room      Room?   @relation(fields: [roomId], references: [id]) // ✅ กำหนด references แค่ฝั่งเดียว
-  roomId    Int
+  roomId    Int?
 }
 
 model Bills {

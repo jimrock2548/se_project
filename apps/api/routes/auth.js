@@ -11,16 +11,16 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // 📌 [POST] สมัครสมาชิก
 router.post("/register", async (req, res) => {
-  const { email, password, username } = req.body;
+  const { email, password, username, firstname } = req.body; // 👈 เพิ่ม firstname ด้วย
 
-  // ตรวจสอบว่ามี email นี้อยู่ในระบบหรือไม่
+  if (!firstname) return res.status(400).json({ message: "Firstname is required" });
+
   const existingUser = await prisma.residents.findUnique({ where: { email } });
   if (existingUser) return res.status(400).json({ message: "Email already exists" });
 
-  // เข้ารหัสรหัสผ่านก่อนบันทึก
   const hashedPassword = await bcrypt.hash(password, 10);
   const newUser = await prisma.residents.create({
-    data: { email, username, password: hashedPassword }
+    data: { email, username, firstname, password: hashedPassword } // 👈 เพิ่ม firstname ใน Prisma
   });
 
   res.status(201).json({ message: "User registered successfully", userId: newUser.id });
