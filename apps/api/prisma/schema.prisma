@@ -13,22 +13,52 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model users {
-  id           Int            @id @default(autoincrement())
-  email        String         @unique
-  profile_img  String?
-  password     String
-  username     String
-  //role         role           @relation("UserRole", fields: [roleId], references: [id])
-  //roleId       Int
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  deletedAt    DateTime?
-  // Order        order[]
-  // emailTokens  emailTokens[]
-  // logLogin     logLogin[]
-  // logRole      logRole[]      @relation("actionBy")
-  // logMember    logMember[]    @relation("actionBy")
-  // logBroadcast logBroadcast[] @relation("actionBy")
-  // logStock     logStock[]
+model Room {
+  id               Int     @id @default(autoincrement()) 
+  roomNumber       String  @unique // หมายเลขห้อง
+  residents        Residents[]
+  residentId       Int?
+  bills            Bills[]
+  payments         Payment[]
+  electricityUnit  Float   // หน่วยค่าไฟปัจจุบัน
+  waterUnit        Float   // หน่วยค่าน้ำปัจจุบัน
 }
+
+model Residents {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  firstname String
+  lastname  String
+  internet  Boolean  @default(false)
+  room      Room? @relation(fields: [roomId], references: [id])  // ✅ กำหนด references แค่ฝั่งเดียว
+  roomId    Int
+}
+
+model Bills {
+  id               Int     @id @default(autoincrement())
+  roomId           Int
+  room             Room    @relation(fields: [roomId], references: [id])
+  payments        Payment[] // 1 Bill สามารถมีหลาย Payment ได้
+  billDate         DateTime @default(now())
+  electricityUsage Float   // หน่วยค่าไฟที่จดครั้งล่าสุด
+  waterUsage       Float   // หน่วยค่าน้ำที่จดครั้งล่าสุด
+  price            Float   // ราคา (อาจรวมค่าน้ำค่าไฟ)
+}
+
+model Payment {
+  id            Int       @id @default(autoincrement())
+  room          Room      @relation(fields: [roomId], references: [id])
+  roomId        Int
+  billId        Int?      // เก็บค่า billId แต่ไม่ต้องใช้ @relation ตรงนี้
+  method        String
+  status        String
+  date          DateTime  @default(now())
+  verification  Boolean   @default(false) // ใช้เก็บสถานะการตรวจสอบสลิป
+  slipReference String?   // อ้างอิงจาก API ของ SlipOk
+  slipStatus    String?   // สถานะการตรวจสอบสลิป เช่น 'verified', 'failed'
+  slipDate      DateTime? // วันที่ตรวจสอบสลิป
+  bill          Bills?    @relation(fields: [billId], references: [id]) // ความสัมพันธ์ที่ถูกต้อง
+}
+
+
