@@ -55,7 +55,6 @@ export default function RootLayout({ children }) {
           {/* Main Content */}
           <div className="drawer-content flex flex-col">
             {/* Navbar */}
-
             <div className="navbar bg-base-100 p-4 shadow-md">
               <div className="flex-none">
                 <label htmlFor="my-drawer" className="btn btn-square btn-ghost">
@@ -130,38 +129,23 @@ export default function RootLayout({ children }) {
                     className="dropdown-content menu bg-base-content text-base-100 rounded-box w-52 p-2 shadow"
                   >
                     <li>
-                      <Link href="/auth/home" className="hover:bg-info-content rounded-lg">
+                      <Link href="/landlord/home" className="hover:bg-info-content rounded-lg">
                         หน้าแรก
                       </Link>
                     </li>
                     <li>
-                      <Link href="/auth/payment" className="hover:bg-info-content rounded-lg">
-                        ชำระค่าเช่า
+                      <Link href="/landlord/billsform" className="hover:bg-info-content rounded-lg">
+                        กรอกใบชำระค่าเช่า
                       </Link>
                     </li>
                     <li>
-                      <Link href="/auth/chat" className="hover:bg-info-content rounded-lg">
-                        แชท
+                      <Link href="/landlord/list" className="hover:bg-info-content rounded-lg">
+                        รายชื่อผู้อยู่อาศัย
                       </Link>
                     </li>
                     <li>
-                      <Link href="/auth/report" className="hover:bg-info-content rounded-lg">
-                        รายงาน
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/auth/setting_" className="hover:bg-info-content rounded-lg">
+                      <Link href="/landlord/setting_" className="hover:bg-info-content rounded-lg">
                         ตั้งค่า
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/Login" className="hover:bg-info-content rounded-lg">
-                        เข้าสู่ระบบ
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/Login" className="hover:bg-info-content rounded-lg">
-                        ลงทะเบียน
                       </Link>
                     </li>
                   </ul>
@@ -175,10 +159,8 @@ export default function RootLayout({ children }) {
           </div>
 
           {/* Sidebar Content */}
-
           <div className="drawer-side z-50">
             <label htmlFor="my-drawer" className="drawer-overlay"></label>
-
             <ul className="menu bg-base-100 text-base-content min-h-screen w-80 p-4 flex flex-col items-center">
               <div className="text-base-content text-3xl font-bold p-2 pt-1">S.T. APARTMENT</div>
               {/* Profile Image */}
@@ -189,36 +171,28 @@ export default function RootLayout({ children }) {
               />
 
               {/* Profile Name */}
-
               <div className="m-4 text-center">
-                <div className="text-2xl font-bold pb-2">นาย จุฑาวัชร บุษษะ</div>
-                <p><d>เลขที่ห้อง :</d> 123</p>
+                <div className="text-2xl font-bold">ผู้ดูแลหอพัก</div>
               </div>
 
               {/* Sidebar Menu */}
-              <li className="w-full border-t-1 border-base-300 pt-2">
-                <Link href="/auth/home" className="hover:bg-base-300 rounded-lg text-lg">
-                  🏠 หน้าแรก
-                </Link>
-              </li>
-              <li className="w-full ">
-                <Link href="/auth/payment" className="hover:bg-base-300 rounded-lg text-lg">
-                  💵 ชำระค่าเช่า
-                </Link>
-              </li>
-              <li className="w-full py-1">
-                <Link href="/auth/chat" className="hover:bg-base-300 rounded-lg text-lg">
-                  ✉️ แชท
-                </Link>
-              </li>
-
               <li className="w-full border-t-1 border-base-300 pt-1">
-                <Link href="/auth/report" className="hover:bg-base-300 rounded-lg text-lg">
-                  📢 รายงาน
+                <Link href="/landlord/home" className="hover:bg-base-300 rounded-lg text-lg">
+                  🏠 ประกาศ / รายงาน
                 </Link>
               </li>
-              <li className="w-full ">
-                <Link href="/auth/setting_" className="hover:bg-base-300 rounded-lg text-lg">
+              <li className="w-full pb-1">
+                <Link href="/landlord/billsform" className="hover:bg-base-300 rounded-lg text-lg">
+                  📋 กรอกใบชำระค่าเช่า
+                </Link>
+              </li>
+              <li className="w-full pb-1">
+                <Link href="/landlord/list" className="hover:bg-base-300 rounded-lg text-lg">
+                  👤 รายชื่อผู้อยู่อาศัย
+                </Link>
+              </li>
+              <li className="w-full border-t-1 border-base-300 pt-1">
+                <Link href="/landlord/setting_" className="hover:bg-base-300 rounded-lg text-lg">
                   ⚙️ ตั้งค่า
                 </Link>
               </li>
@@ -238,62 +212,6 @@ export default function RootLayout({ children }) {
           </div>
 
         </div>
-        <footer className="footer bg-base-100 text-neutral-content p-10 mt-auto">
-          <aside>
-            <img
-              src="https://styles.redditmedia.com/t5_bl072t/styles/communityIcon_sav8u6l3o32d1.jpg?format=pjpg&s=a6f4623c44f902697b3b05cdaf2408b1178c2873"
-              alt="SIGMA BOY DORMITORY"
-              className="rounded-full"
-              width="70"
-              height="70"
-            />
-            <p className="text-black">
-              SIGMA BOY DORMITORY.
-            </p>
-          </aside>
-          <nav>
-            <h6 className="footer-title text-black">Social</h6>
-            <div className="grid grid-flow-col gap-4">
-              <a>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  color="black"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  className="fill-current">
-                  <path
-                    d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"></path>
-                </svg>
-              </a>
-              <a>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  color="black"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  className="fill-current">
-                  <path
-                    d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
-                </svg>
-              </a>
-              <a>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  color="black"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  className="fill-current">
-
-                  <path
-                    d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"></path>
-                </svg>
-              </a>
-            </div>
-          </nav>
-        </footer>
       </body>
     </html>
 
