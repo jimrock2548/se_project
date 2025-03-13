@@ -11,217 +11,219 @@ datasource db {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
+  id            String    @id @default(cuid())
   username      String    @unique
-  password_hash String
+  password      String
   email         String    @unique
   phone         String?
-  full_name     String
-  role          String    // "resident", "landlord", "admin"
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  fullName      String
+  role          Role      @default(RESIDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   
-  // Relations
   resident      Resident?
   landlord      Landlord?
-  sent_messages     Message[] @relation("SentMessages")
-  received_messages Message[] @relation("ReceivedMessages")
-  meter_readings    MeterReading[] @relation("RecordedBy")
+  sentMessages     Message[]  @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
+  meterReadings    MeterReading[] @relation("RecordedBy")
+}
+
+enum Role {
+  RESIDENT
+  LANDLORD
+  ADMIN
 }
 
 model Resident {
-  id             Int       @id @default(autoincrement())
-  user_id        Int       @unique
-  room_number    String
-  check_in_date  DateTime
-  check_out_date DateTime?
-  is_active      Boolean   @default(true)
-  created_at     DateTime  @default(now())
-  updated_at     DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roomId        String
+  room          Room      @relation(fields: [roomId], references: [id])
+  checkInDate   DateTime
+  checkOutDate  DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   
-  // Relations
-  user           User      @relation(fields: [user_id], references: [id])
-  room           Room      @relation(fields: [room_number], references: [room_number])
-  bills          Bill[]
-  reports_filed  Report[]  @relation("ReporterRelation")
-  reports_against Report[] @relation("ReportedRelation")
+  bills         Bill[]
+  reportsBy     Report[]  @relation("ReportedBy")
+  reportsAgainst Report[] @relation("ReportedAgainst")
 }
 
 model Landlord {
-  id          Int       @id @default(autoincrement())
-  user_id     Int       @unique
-  description String?
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  description   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   
-  // Relations
-  user         User          @relation(fields: [user_id], references: [id])
   announcements Announcement[]
 }
 
 model Room {
-  id          Int       @id @default(autoincrement())
-  room_number String    @unique
-  floor       String
-  building    String
-  room_size   Float
-  base_rent   Float
-  is_active   Boolean   @default(true)
+  id            String    @id @default(cuid())
+  roomNumber    String    @unique
+  floor         String
+  building      String?
+  roomSize      Float?
+  baseRent      Float
+  isActive      Boolean   @default(true)
   
-  // Relations
-  residents   Resident[]
-  meters      Meter[]
+  residents     Resident[]
+  meters        Meter[]
 }
 
 model Bill {
-  id                  Int       @id @default(autoincrement())
-  resident_id         Int
-  total_amount        Float
-  billing_period_start DateTime
-  billing_period_end   DateTime
-  due_date            DateTime
-  status              String    // "pending", "paid", "overdue"
-  created_at          DateTime  @default(now())
-  updated_at          DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  residentId        String
+  resident          Resident  @relation(fields: [residentId], references: [id])
+  totalAmount       Float
+  billingPeriodStart DateTime
+  billingPeriodEnd  DateTime
+  dueDate           DateTime
+  status            BillStatus @default(PENDING)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
   
-  // Relations
-  resident            Resident  @relation(fields: [resident_id], references: [id])
-  bill_items          BillItem[]
-  payments            Payment[]
+  billItems         BillItem[]
+  payments          Payment[]
+}
+
+enum BillStatus {
+  PENDING
+  PAID
+  OVERDUE
 }
 
 model BillItem {
-  id              Int       @id @default(autoincrement())
-  bill_id         Int
-  utility_type_id Int
-  amount          Float
-  unit_used       Float
-  rate            Float
-  description     String?
-  
-  // Relations
-  bill            Bill        @relation(fields: [bill_id], references: [id])
-  utility_type    UtilityType @relation(fields: [utility_type_id], references: [id])
+  id            String    @id @default(cuid())
+  billId        String
+  bill          Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
+  utilityTypeId String
+  utilityType   UtilityType @relation(fields: [utilityTypeId], references: [id])
+  amount        Float
+  unitUsed      Float
+  rate          Float
+  description   String?
 }
 
 model UtilityType {
-  id          Int       @id @default(autoincrement())
-  name        String
-  unit        String
-  is_active   Boolean   @default(true)
+  id            String    @id @default(cuid())
+  name          String
+  unit          String
+  isActive      Boolean   @default(true)
   
-  // Relations
-  meters      Meter[]
-  utility_rates UtilityRate[]
-  bill_items  BillItem[]
+  meters        Meter[]
+  utilityRates  UtilityRate[]
+  billItems     BillItem[]
 }
 
 model UtilityRate {
-  id              Int       @id @default(autoincrement())
-  utility_type_id Int
-  rate            Float
-  min_unit        Float?
-  max_unit        Float?
-  effective_date  DateTime
-  is_active       Boolean   @default(true)
-  
-  // Relations
-  utility_type    UtilityType @relation(fields: [utility_type_id], references: [id])
+  id            String    @id @default(cuid())
+  utilityTypeId String
+  utilityType   UtilityType @relation(fields: [utilityTypeId], references: [id])
+  rate          Float
+  minUnit       Float?
+  maxUnit       Float?
+  effectiveDate DateTime
+  isActive      Boolean   @default(true)
 }
 
 model Meter {
-  id              Int       @id @default(autoincrement())
-  room_id         Int
-  utility_type_id Int
-  meter_number    String    @unique
-  installation_date DateTime
-  is_active       Boolean   @default(true)
+  id            String    @id @default(cuid())
+  roomId        String
+  room          Room      @relation(fields: [roomId], references: [id])
+  utilityTypeId String
+  utilityType   UtilityType @relation(fields: [utilityTypeId], references: [id])
+  meterNumber   String
+  installationDate DateTime
+  isActive      Boolean   @default(true)
   
-  // Relations
-  room            Room        @relation(fields: [room_id], references: [id])
-  utility_type    UtilityType @relation(fields: [utility_type_id], references: [id])
-  meter_readings  MeterReading[]
+  meterReadings MeterReading[]
 }
 
 model MeterReading {
-  id            Int       @id @default(autoincrement())
-  meter_id      Int
+  id            String    @id @default(cuid())
+  meterId       String
+  meter         Meter     @relation(fields: [meterId], references: [id])
   reading       Float
-  reading_date  DateTime
-  recorded_by   Int
+  readingDate   DateTime
+  recordedById  String
+  recordedBy    User      @relation("RecordedBy", fields: [recordedById], references: [id])
   note          String?
-  
-  // Relations
-  meter         Meter      @relation(fields: [meter_id], references: [id])
-  user          User       @relation("RecordedBy", fields: [recorded_by], references: [id])
 }
 
 model Payment {
-  id                Int       @id @default(autoincrement())
-  bill_id           Int
-  payment_method_id Int
+  id                String    @id @default(cuid())
+  billId            String
+  bill              Bill      @relation(fields: [billId], references: [id])
+  paymentMethodId   String
+  paymentMethod     PaymentMethod @relation(fields: [paymentMethodId], references: [id])
   amount            Float
-  payment_date      DateTime
-  transaction_id    String?
-  status            String    // "pending", "completed", "failed"
-  created_at        DateTime  @default(now())
-  
-  // Relations
-  bill              Bill          @relation(fields: [bill_id], references: [id])
-  payment_method    PaymentMethod @relation(fields: [payment_method_id], references: [id])
+  paymentDate       DateTime
+  transactionId     String?
+  status            PaymentStatus @default(PENDING)
+  createdAt         DateTime  @default(now())
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }
 
 model PaymentMethod {
-  id          Int       @id @default(autoincrement())
-  name        String
-  description String?
-  is_active   Boolean   @default(true)
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  isActive      Boolean   @default(true)
   
-  // Relations
-  payments    Payment[]
+  payments      Payment[]
 }
 
 model Announcement {
-  id            Int       @id @default(autoincrement())
-  landlord_id   Int
+  id            String    @id @default(cuid())
+  landlordId    String
+  landlord      Landlord  @relation(fields: [landlordId], references: [id])
   title         String
   content       String
-  publish_date  DateTime
-  expiry_date   DateTime
-  is_active     Boolean   @default(true)
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
-  
-  // Relations
-  landlord      Landlord  @relation(fields: [landlord_id], references: [id])
+  publishDate   DateTime
+  expiryDate    DateTime
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Report {
-  id            Int       @id @default(autoincrement())
-  reporter_id   Int
-  reported_id   Int
+  id            String    @id @default(cuid())
+  reporterId    String
+  reporter      Resident  @relation("ReportedBy", fields: [reporterId], references: [id])
+  reportedId    String
+  reported      Resident  @relation("ReportedAgainst", fields: [reportedId], references: [id])
   title         String
   description   String
-  status        String    // "pending", "investigating", "resolved"
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
-  
-  // Relations
-  reporter      Resident  @relation("ReporterRelation", fields: [reporter_id], references: [id])
-  reported      Resident  @relation("ReportedRelation", fields: [reported_id], references: [id])
+  status        ReportStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum ReportStatus {
+  PENDING
+  INVESTIGATING
+  RESOLVED
 }
 
 model Message {
-  id          Int       @id @default(autoincrement())
-  sender_id   Int
-  receiver_id Int
-  content     String
-  is_read     Boolean   @default(false)
-  sent_at     DateTime  @default(now())
-  read_at     DateTime?
-  
-  // Relations
-  sender      User      @relation("SentMessages", fields: [sender_id], references: [id])
-  receiver    User      @relation("ReceivedMessages", fields: [receiver_id], references: [id])
+  id            String    @id @default(cuid())
+  senderId      String
+  sender        User      @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId    String
+  receiver      User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content       String
+  isRead        Boolean   @default(false)
+  sentAt        DateTime  @default(now())
+  readAt        DateTime?
 }
 
