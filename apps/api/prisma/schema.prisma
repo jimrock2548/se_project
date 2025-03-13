@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,51 +10,220 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  password      String
+  email         String    @unique
+  phone         String?
+  fullName      String
+  role          Role      @default(RESIDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  resident      Resident?
+  landlord      Landlord?
+  sentMessages     Message[]  @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
+  meterReadings    MeterReading[] @relation("RecordedBy")
+}
+
+enum Role {
+  RESIDENT
+  LANDLORD
+  ADMIN
+}
+
+model Resident {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roomId        String
+  room          Room      @relation(fields: [roomId], references: [id])
+  checkInDate   DateTime
+  checkOutDate  DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  bills         Bill[]
+  reportsBy     Report[]  @relation("ReportedBy")
+  reportsAgainst Report[] @relation("ReportedAgainst")
+}
+
+model Landlord {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  description   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  announcements Announcement[]
+}
+
 model Room {
-  id              Int         @id @default(autoincrement())
-  roomNumber      String      @unique // หมายเลขห้อง
-  residents       Residents[]
-  residentId      Int?
-  bills           Bills[]
-  payments        Payment[]
-  electricityUnit Float // หน่วยค่าไฟปัจจุบัน
-  waterUnit       Float // หน่วยค่าน้ำปัจจุบัน
+  id            String    @id @default(cuid())
+  roomNumber    String    @unique
+  floor         String
+  building      String?
+  roomSize      Float?
+  baseRent      Float
+  isActive      Boolean   @default(true)
+  
+  residents     Resident[]
+  meters        Meter[]
 }
 
-model Residents {
-  id        Int     @id @default(autoincrement())
-  username  String  @unique
-  email     String  @unique
-  password  String
-  firstname String?
-  lastname  String?
-  internet  Boolean @default(false)
-  room      Room?   @relation(fields: [roomId], references: [id]) // ✅ กำหนด references แค่ฝั่งเดียว
-  roomId    Int?
+model Bill {
+  id                String    @id @default(cuid())
+  residentId        String
+  resident          Resident  @relation(fields: [residentId], references: [id])
+  totalAmount       Float
+  billingPeriodStart DateTime
+  billingPeriodEnd  DateTime
+  dueDate           DateTime
+  status            BillStatus @default(PENDING)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  billItems         BillItem[]
+  payments          Payment[]
 }
 
-model Bills {
-  id               Int       @id @default(autoincrement())
-  roomId           Int
-  room             Room      @relation(fields: [roomId], references: [id])
-  payments         Payment[] // 1 Bill สามารถมีหลาย Payment ได้
-  billDate         DateTime  @default(now())
-  electricityUsage Float // หน่วยค่าไฟที่จดครั้งล่าสุด
-  waterUsage       Float // หน่วยค่าน้ำที่จดครั้งล่าสุด
-  price            Float // ราคา (อาจรวมค่าน้ำค่าไฟ)
+enum BillStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+model BillItem {
+  id            String    @id @default(cuid())
+  billId        String
+  bill          Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
+  utilityTypeId String
+  utilityType   UtilityType @relation(fields: [utilityTypeId], references: [id])
+  amount        Float
+  unitUsed      Float
+  rate          Float
+  description   String?
+}
+
+model UtilityType {
+  id            String    @id @default(cuid())
+  name          String
+  unit          String
+  isActive      Boolean   @default(true)
+  
+  meters        Meter[]
+  utilityRates  UtilityRate[]
+  billItems     BillItem[]
+}
+
+model UtilityRate {
+  id            String    @id @default(cuid())
+  utilityTypeId String
+  utilityType   UtilityType @relation(fields: [utilityTypeId], references: [id])
+  rate          Float
+  minUnit       Float?
+  maxUnit       Float?
+  effectiveDate DateTime
+  isActive      Boolean   @default(true)
+}
+
+model Meter {
+  id            String    @id @default(cuid())
+  roomId        String
+  room          Room      @relation(fields: [roomId], references: [id])
+  utilityTypeId String
+  utilityType   UtilityType @relation(fields: [utilityTypeId], references: [id])
+  meterNumber   String
+  installationDate DateTime
+  isActive      Boolean   @default(true)
+  
+  meterReadings MeterReading[]
+}
+
+model MeterReading {
+  id            String    @id @default(cuid())
+  meterId       String
+  meter         Meter     @relation(fields: [meterId], references: [id])
+  reading       Float
+  readingDate   DateTime
+  recordedById  String
+  recordedBy    User      @relation("RecordedBy", fields: [recordedById], references: [id])
+  note          String?
 }
 
 model Payment {
-  id            Int       @id @default(autoincrement())
-  room          Room      @relation(fields: [roomId], references: [id])
-  roomId        Int
-  billId        Int? // เก็บค่า billId แต่ไม่ต้องใช้ @relation ตรงนี้
-  method        String
-  status        String
-  date          DateTime  @default(now())
-  verification  Boolean   @default(false) // ใช้เก็บสถานะการตรวจสอบสลิป
-  slipReference String? // อ้างอิงจาก API ของ SlipOk
-  slipStatus    String? // สถานะการตรวจสอบสลิป เช่น 'verified', 'failed'
-  slipDate      DateTime? // วันที่ตรวจสอบสลิป
-  bill          Bills?    @relation(fields: [billId], references: [id]) // ความสัมพันธ์ที่ถูกต้อง
+  id                String    @id @default(cuid())
+  billId            String
+  bill              Bill      @relation(fields: [billId], references: [id])
+  paymentMethodId   String
+  paymentMethod     PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  amount            Float
+  paymentDate       DateTime
+  transactionId     String?
+  status            PaymentStatus @default(PENDING)
+  createdAt         DateTime  @default(now())
 }
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model PaymentMethod {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  isActive      Boolean   @default(true)
+  
+  payments      Payment[]
+}
+
+model Announcement {
+  id            String    @id @default(cuid())
+  landlordId    String
+  landlord      Landlord  @relation(fields: [landlordId], references: [id])
+  title         String
+  content       String
+  publishDate   DateTime
+  expiryDate    DateTime
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Report {
+  id            String    @id @default(cuid())
+  reporterId    String
+  reporter      Resident  @relation("ReportedBy", fields: [reporterId], references: [id])
+  reportedId    String
+  reported      Resident  @relation("ReportedAgainst", fields: [reportedId], references: [id])
+  title         String
+  description   String
+  status        ReportStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum ReportStatus {
+  PENDING
+  INVESTIGATING
+  RESOLVED
+}
+
+model Message {
+  id            String    @id @default(cuid())
+  senderId      String
+  sender        User      @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId    String
+  receiver      User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content       String
+  isRead        Boolean   @default(false)
+  sentAt        DateTime  @default(now())
+  readAt        DateTime?
+}
+
