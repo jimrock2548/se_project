@@ -6,12 +6,12 @@ import { useEffect, useState } from 'react'
 import { themeChange } from 'theme-change'
 
 const geistSans = localFont({
-  src: "../fonts/GeistVF.woff",
+  src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
   weight: "100 900",
 });
 const geistMono = localFont({
-  src: "../fonts/GeistMonoVF.woff",
+  src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
 });
@@ -239,25 +239,13 @@ export default function RootLayout({ children }) {
 
         </div>
         <footer className="footer bg-base-100 text-neutral-content p-10 mt-auto">
-          <aside>
-            <img
-              src="https://styles.redditmedia.com/t5_bl072t/styles/communityIcon_sav8u6l3o32d1.jpg?format=pjpg&s=a6f4623c44f902697b3b05cdaf2408b1178c2873"
-              alt="SIGMA BOY DORMITORY"
-              className="rounded-full"
-              width="70"
-              height="70"
-            />
-            <p className="text-black">
-              SIGMA BOY DORMITORY.
-            </p>
-          </aside>
           <nav>
-            <h6 className="footer-title text-black">Social</h6>
-            <div className="grid grid-flow-col gap-4">
+            <h6 className="footer-title text-base">Social</h6>
+            <div className="grid grid-flow-col gap-4 ">
               <a>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  color="black"
+                  color="color-base"
                   width="24"
                   height="24"
                   viewBox="0 0 24 24"
@@ -269,7 +257,7 @@ export default function RootLayout({ children }) {
               <a>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  color="black"
+                  color="color-base"
                   width="24"
                   height="24"
                   viewBox="0 0 24 24"
@@ -281,7 +269,7 @@ export default function RootLayout({ children }) {
               <a>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  color="black"
+                  color="color-base"
                   width="24"
                   height="24"
                   viewBox="0 0 24 24"
