@@ -10,7 +10,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3000",
+      "url": "http://localhost:5000",
       "description": "Development Server"
     }
   ],
@@ -24,36 +24,16 @@
       "description": "การจัดการผู้ใช้งาน"
     },
     {
-      "name": "Residents",
-      "description": "การจัดการผู้พักอาศัย"
-    },
-    {
       "name": "Rooms",
       "description": "การจัดการห้องพัก"
     },
     {
-      "name": "Bills",
-      "description": "การจัดการบิลและค่าใช้จ่าย"
-    },
-    {
-      "name": "Utilities",
-      "description": "การจัดการค่าสาธารณูปโภค"
-    },
-    {
-      "name": "Announcements",
-      "description": "การจัดการประกาศ"
-    },
-    {
-      "name": "Reports",
-      "description": "การจัดการรายงานปัญหา"
-    },
-    {
-      "name": "Messages",
-      "description": "การจัดการข้อความ"
+      "name": "Setup",
+      "description": "การตั้งค่าเริ่มต้นระบบ"
     }
   ],
   "paths": {
-    "/api/auth/signin": {
+    "/api/auth/login": {
       "post": {
         "tags": ["Authentication"],
         "summary": "เข้าสู่ระบบ",
@@ -87,11 +67,16 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Login successful"
+                    },
                     "user": {
                       "$ref": "#/components/schemas/User"
                     },
                     "token": {
-                      "type": "string"
+                      "type": "string",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                     }
                   }
                 }
@@ -117,11 +102,56 @@
         }
       }
     },
-    "/api/auth/signout": {
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "ดึงข้อมูลผู้ใช้ปัจจุบัน",
+        "description": "ใช้สำหรับดึงข้อมูลผู้ใช้ที่เข้าสู่ระบบอยู่",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ดึงข้อมูลผู้ใช้สำเร็จ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ไม่ได้เข้าสู่ระบบ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Authentication required"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
       "post": {
         "tags": ["Authentication"],
         "summary": "ออกจากระบบ",
-        "description": "ใช้สำหรับออกจากระบบและลบเซสชัน",
+        "description": "ใช้สำหรับออกจากระบบ (สำหรับ JWT เป็นการออกจากระบบฝั่งไคลเอนต์)",
         "responses": {
           "200": {
             "description": "ออกจากระบบสำเร็จ",
@@ -132,7 +162,7 @@
                   "properties": {
                     "message": {
                       "type": "string",
-                      "example": "Signed out successfully"
+                      "example": "Logged out successfully"
                     }
                   }
                 }
@@ -142,25 +172,29 @@
         }
       }
     },
-    "/api/auth/session": {
+    "/api/users": {
       "get": {
-        "tags": ["Authentication"],
-        "summary": "ดึงข้อมูลเซสชันปัจจุบัน",
-        "description": "ใช้สำหรับดึงข้อมูลเซสชันของผู้ใช้ที่เข้าสู่ระบบอยู่",
+        "tags": ["Users"],
+        "summary": "ดึงข้อมูลผู้ใช้ทั้งหมด",
+        "description": "ใช้สำหรับดึงข้อมูลผู้ใช้ทั้งหมด (เฉพาะผู้ดูแลระบบและเจ้าของหอพัก)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "ดึงข้อมูลเซสชันสำเร็จ",
+            "description": "ดึงข้อมูลผู้ใช้สำเร็จ",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "user": {
-                      "$ref": "#/components/schemas/User"
-                    },
-                    "expires": {
-                      "type": "string",
-                      "format": "date-time"
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/User"
+                      }
                     }
                   }
                 }
@@ -168,15 +202,31 @@
             }
           },
           "401": {
-            "description": "ไม่มีเซสชันที่ใช้งานอยู่",
+            "description": "ไม่ได้เข้าสู่ระบบ",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "error": {
                       "type": "string",
-                      "example": "No active session"
+                      "example": "Authentication required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ไม่มีสิทธิ์เข้าถึง",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Forbidden: You do not have permission to access this resource"
                     }
                   }
                 }
@@ -184,13 +234,11 @@
             }
           }
         }
-      }
-    },
-    "/api/register": {
+      },
       "post": {
         "tags": ["Users"],
-        "summary": "ลงทะเบียนผู้ใช้ใหม่",
-        "description": "ใช้สำหรับลงทะเบียนผู้ใช้ใหม่ (เฉพาะเจ้าของหอพักและผู้ดูแลระบบเท่านั้น)",
+        "summary": "สร้างผู้ใช้ใหม่",
+        "description": "ใช้สำหรับสร้างผู้ใช้ใหม่ (เฉพาะผู้ดูแลระบบและเจ้าของหอพัก)",
         "security": [
           {
             "bearerAuth": []
@@ -202,7 +250,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["username", "email", "fullName", "role"],
+                "required": ["username", "email", "password", "fullName", "role"],
                 "properties": {
                   "username": {
                     "type": "string",
@@ -212,6 +260,10 @@
                     "type": "string",
                     "format": "email",
                     "example": "john@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "password123"
                   },
                   "fullName": {
                     "type": "string",
@@ -244,7 +296,7 @@
         },
         "responses": {
           "201": {
-            "description": "ลงทะเบียนผู้ใช้สำเร็จ",
+            "description": "สร้างผู้ใช้สำเร็จ",
             "content": {
               "application/json": {
                 "schema": {
@@ -252,28 +304,10 @@
                   "properties": {
                     "message": {
                       "type": "string",
-                      "example": "User registered successfully"
+                      "example": "User created successfully"
                     },
                     "user": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "username": {
-                          "type": "string"
-                        },
-                        "email": {
-                          "type": "string"
-                        },
-                        "role": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "tempPassword": {
-                      "type": "string",
-                      "example": "a1b2c3d4"
+                      "$ref": "#/components/schemas/User"
                     }
                   }
                 }
@@ -296,89 +330,6 @@
               }
             }
           },
-          "403": {
-            "description": "ไม่มีสิทธิ์ในการลงทะเบียนผู้ใช้",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized: Only landlords and admins can register new users"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/users/change-password": {
-      "post": {
-        "tags": ["Users"],
-        "summary": "เปลี่ยนรหัสผ่าน",
-        "description": "ใช้สำหรับเปลี่ยนรหัสผ่านของผู้ใช้ที่เข้าสู่ระบบอยู่",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["currentPassword", "newPassword"],
-                "properties": {
-                  "currentPassword": {
-                    "type": "string",
-                    "example": "oldpassword123"
-                  },
-                  "newPassword": {
-                    "type": "string",
-                    "example": "newpassword456"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "เปลี่ยนรหัสผ่านสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Password changed successfully"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "รหัสผ่านปัจจุบันไม่ถูกต้องหรือข้อมูลไม่ครบถ้วน",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Current password is incorrect"
-                    }
-                  }
-                }
-              }
-            }
-          },
           "401": {
             "description": "ไม่ได้เข้าสู่ระบบ",
             "content": {
@@ -388,7 +339,23 @@
                   "properties": {
                     "error": {
                       "type": "string",
-                      "example": "Unauthorized"
+                      "example": "Authentication required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ไม่มีสิทธิ์เข้าถึง",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Forbidden: You do not have permission to access this resource"
                     }
                   }
                 }
@@ -398,31 +365,35 @@
         }
       }
     },
-    "/api/users/update-profile": {
-      "put": {
-        "tags": ["Users"],
-        "summary": "อัปเดตข้อมูลส่วนตัว",
-        "description": "ใช้สำหรับอัปเดตข้อมูลส่วนตัวของผู้ใช้ที่เข้าสู่ระบบอยู่",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+    "/api/setup/first-admin": {
+      "post": {
+        "tags": ["Setup"],
+        "summary": "สร้างผู้ดูแลระบบคนแรก",
+        "description": "ใช้สำหรับสร้างผู้ดูแลระบบคนแรก (ทำงานเฉพาะเมื่อไม่มีผู้ใช้ในระบบ)",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": ["username", "email", "password", "fullName"],
                 "properties": {
-                  "fullName": {
+                  "username": {
                     "type": "string",
-                    "example": "John Smith"
+                    "example": "admin"
                   },
                   "email": {
                     "type": "string",
                     "format": "email",
-                    "example": "john.smith@example.com"
+                    "example": "admin@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "adminpassword"
+                  },
+                  "fullName": {
+                    "type": "string",
+                    "example": "System Administrator"
                   },
                   "phone": {
                     "type": "string",
@@ -434,8 +405,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "อัปเดตข้อมูลส่วนตัวสำเร็จ",
+          "201": {
+            "description": "สร้างผู้ดูแลระบบคนแรกสำเร็จ",
             "content": {
               "application/json": {
                 "schema": {
@@ -443,7 +414,7 @@
                   "properties": {
                     "message": {
                       "type": "string",
-                      "example": "Profile updated successfully"
+                      "example": "First admin user created successfully"
                     },
                     "user": {
                       "$ref": "#/components/schemas/User"
@@ -454,7 +425,7 @@
             }
           },
           "400": {
-            "description": "ข้อมูลไม่ถูกต้องหรือไม่ครบถ้วน",
+            "description": "มีผู้ใช้ในระบบแล้ว",
             "content": {
               "application/json": {
                 "schema": {
@@ -462,1854 +433,7 @@
                   "properties": {
                     "error": {
                       "type": "string",
-                      "example": "Email already in use by another user"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/rooms": {
-      "get": {
-        "tags": ["Rooms"],
-        "summary": "ดึงข้อมูลห้องพักทั้งหมด",
-        "description": "ใช้สำหรับดึงข้อมูลห้องพักทั้งหมด (เฉพาะเจ้าของหอพักและผู้ดูแลระบบเท่านั้น)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "isActive",
-            "in": "query",
-            "description": "กรองตามสถานะการใช้งาน",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "building",
-            "in": "query",
-            "description": "กรองตามอาคาร",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "floor",
-            "in": "query",
-            "description": "กรองตามชั้น",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ดึงข้อมูลห้องพักสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Room"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "ไม่มีสิทธิ์ในการดูข้อมูลห้องพัก",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Forbidden: Only landlords and admins can access this resource"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": ["Rooms"],
-        "summary": "เพิ่มห้องพักใหม่",
-        "description": "ใช้สำหรับเพิ่มห้องพักใหม่ (เฉพาะเจ้าของหอพักและผู้ดูแลระบบเท่านั้น)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["roomNumber", "floor", "baseRent"],
-                "properties": {
-                  "roomNumber": {
-                    "type": "string",
-                    "example": "101"
-                  },
-                  "floor": {
-                    "type": "string",
-                    "example": "1"
-                  },
-                  "building": {
-                    "type": "string",
-                    "example": "A"
-                  },
-                  "roomSize": {
-                    "type": "number",
-                    "example": 25.5
-                  },
-                  "baseRent": {
-                    "type": "number",
-                    "example": 5000
-                  },
-                  "isActive": {
-                    "type": "boolean",
-                    "example": true
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "เพิ่มห้องพักสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Room created successfully"
-                    },
-                    "room": {
-                      "$ref": "#/components/schemas/Room"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "ข้อมูลไม่ถูกต้องหรือไม่ครบถ้วน",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Room number already exists"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "ไม่มีสิทธิ์ในการเพิ่มห้องพัก",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Forbidden: Only landlords and admins can access this resource"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/rooms/{id}": {
-      "get": {
-        "tags": ["Rooms"],
-        "summary": "ดึงข้อมูลห้องพักตาม ID",
-        "description": "ใช้สำหรับดึงข้อมูลห้องพักตาม ID",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "ID ของห้องพัก",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ดึงข้อมูลห้องพักสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Room"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "ไม่พบห้องพัก",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Room not found"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": ["Rooms"],
-        "summary": "อัปเดตข้อมูลห้องพัก",
-        "description": "ใช้สำหรับอัปเดตข้อมูลห้องพัก (เฉพาะเจ้าของหอพักและผู้ดูแลระบบเท่านั้น)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "ID ของห้องพัก",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "roomNumber": {
-                    "type": "string",
-                    "example": "101A"
-                  },
-                  "floor": {
-                    "type": "string",
-                    "example": "1"
-                  },
-                  "building": {
-                    "type": "string",
-                    "example": "A"
-                  },
-                  "roomSize": {
-                    "type": "number",
-                    "example": 25.5
-                  },
-                  "baseRent": {
-                    "type": "number",
-                    "example": 5500
-                  },
-                  "isActive": {
-                    "type": "boolean",
-                    "example": true
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "อัปเดตข้อมูลห้องพักสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Room updated successfully"
-                    },
-                    "room": {
-                      "$ref": "#/components/schemas/Room"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "ข้อมูลไม่ถูกต้อง",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Room number already exists"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "ไม่พบห้องพัก",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Room not found"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "ไม่มีสิทธิ์ในการอัปเดตห้องพัก",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Forbidden: Only landlords and admins can access this resource"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/meters": {
-      "get": {
-        "tags": ["Utilities"],
-        "summary": "ดึงข้อมูลมิเตอร์ทั้งหมด",
-        "description": "ใช้สำหรับดึงข้อมูลมิเตอร์ทั้งหมด (เฉพาะเจ้าของหอพักและผู้ดูแลระบบเท่านั้น)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "roomId",
-            "in": "query",
-            "description": "กรองตามห้องพัก",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "utilityTypeId",
-            "in": "query",
-            "description": "กรองตามประเภทสาธารณูปโภค",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "isActive",
-            "in": "query",
-            "description": "กรองตามสถานะการใช้งาน",
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ดึงข้อมูลมิเตอร์สำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Meter"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "ไม่มีสิทธิ์ในการดูข้อมูลมิเตอร์",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Forbidden: Only landlords and admins can access this resource"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": ["Utilities"],
-        "summary": "เพิ่มมิเตอร์ใหม่",
-        "description": "ใช้สำหรับเพิ่มมิเตอร์ใหม่ (เฉพาะเจ้าของหอพักและผู้ดูแลระบบเท่านั้น)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["roomId", "utilityTypeId", "meterNumber", "installationDate"],
-                "properties": {
-                  "roomId": {
-                    "type": "string",
-                    "example": "room1"
-                  },
-                  "utilityTypeId": {
-                    "type": "string",
-                    "example": "utility1"
-                  },
-                  "meterNumber": {
-                    "type": "string",
-                    "example": "E12345"
-                  },
-                  "installationDate": {
-                    "type": "string",
-                    "format": "date",
-                    "example": "2023-01-01"
-                  },
-                  "isActive": {
-                    "type": "boolean",
-                    "example": true
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "เพิ่มมิเตอร์สำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Meter created successfully"
-                    },
-                    "meter": {
-                      "$ref": "#/components/schemas/Meter"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "ข้อมูลไม่ถูกต้องหรือไม่ครบถ้วน",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Meter number already exists"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "ไม่มีสิทธิ์ในการเพิ่มมิเตอร์",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Forbidden: Only landlords and admins can access this resource"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/meter-readings": {
-      "post": {
-        "tags": ["Utilities"],
-        "summary": "บันทึกค่ามิเตอร์",
-        "description": "ใช้สำหรับบันทึกค่ามิเตอร์ (เฉพาะเจ้าของหอพักและผู้ดูแลระบบเท่านั้น)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["meterId", "reading", "readingDate"],
-                "properties": {
-                  "meterId": {
-                    "type": "string",
-                    "example": "meter1"
-                  },
-                  "reading": {
-                    "type": "number",
-                    "example": 1234.5
-                  },
-                  "readingDate": {
-                    "type": "string",
-                    "format": "date-time",
-                    "example": "2023-01-01T12:00:00Z"
-                  },
-                  "note": {
-                    "type": "string",
-                    "example": "ค่ามิเตอร์ประจำเดือนมกราคม"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "บันทึกค่ามิเตอร์สำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Meter reading recorded successfully"
-                    },
-                    "meterReading": {
-                      "$ref": "#/components/schemas/MeterReading"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "ข้อมูลไม่ถูกต้องหรือไม่ครบถ้วน",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Reading value must be greater than previous reading"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "ไม่มีสิทธิ์ในการบันทึกค่ามิเตอร์",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Forbidden: Only landlords and admins can access this resource"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": ["Utilities"],
-        "summary": "ดึงข้อมูลการอ่านค่ามิเตอร์",
-        "description": "ใช้สำหรับดึงข้อมูลการอ่านค่ามิเตอร์",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "meterId",
-            "in": "query",
-            "description": "กรองตามมิเตอร์",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "startDate",
-            "in": "query",
-            "description": "กรองตามวันที่เริ่มต้น",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "endDate",
-            "in": "query",
-            "description": "กรองตามวันที่สิ้นสุด",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ดึงข้อมูลการอ่านค่ามิเตอร์สำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MeterReading"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/bills/generate": {
-      "post": {
-        "tags": ["Bills"],
-        "summary": "สร้างบิลค่าใช้จ่าย",
-        "description": "ใช้สำหรับสร้างบิลค่าใช้จ่ายจากค่ามิเตอร์ (เฉพาะเจ้าของหอพักและผู้ดูแลระบบเท่านั้น)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["billingPeriodStart", "billingPeriodEnd", "dueDate"],
-                "properties": {
-                  "billingPeriodStart": {
-                    "type": "string",
-                    "format": "date",
-                    "example": "2023-01-01"
-                  },
-                  "billingPeriodEnd": {
-                    "type": "string",
-                    "format": "date",
-                    "example": "2023-01-31"
-                  },
-                  "dueDate": {
-                    "type": "string",
-                    "format": "date",
-                    "example": "2023-02-10"
-                  },
-                  "residentIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "รหัสผู้พักอาศัยที่ต้องการสร้างบิล (ถ้าไม่ระบุจะสร้างให้ทุกคน)",
-                    "example": ["resident1", "resident2"]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "สร้างบิลค่าใช้จ่ายสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Bills generated successfully"
-                    },
-                    "billsCount": {
-                      "type": "number",
-                      "example": 10
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "ข้อมูลไม่ถูกต้องหรือไม่ครบถ้วน",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Billing period end date must be after start date"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "ไม่มีสิทธิ์ในการสร้างบิล",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Forbidden: Only landlords and admins can access this resource"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/bills": {
-      "get": {
-        "tags": ["Bills"],
-        "summary": "ดึงข้อมูลบิลค่าใช้จ่าย",
-        "description": "ใช้สำหรับดึงข้อมูลบิลค่าใช้จ่าย",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "residentId",
-            "in": "query",
-            "description": "กรองตามผู้พักอาศัย",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "description": "กรองตามสถานะ",
-            "schema": {
-              "type": "string",
-              "enum": ["PENDING", "PAID", "OVERDUE"]
-            }
-          },
-          {
-            "name": "startDate",
-            "in": "query",
-            "description": "กรองตามวันที่เริ่มต้น",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "endDate",
-            "in": "query",
-            "description": "กรองตามวันที่สิ้นสุด",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ดึงข้อมูลบิลค่าใช้จ่ายสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Bill"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/bills/{id}": {
-      "get": {
-        "tags": ["Bills"],
-        "summary": "ดึงข้อมูลบิลค่าใช้จ่ายตาม ID",
-        "description": "ใช้สำหรับดึงข้อมูลบิลค่าใช้จ่ายตาม ID",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "ID ของบิล",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ดึงข้อมูลบิลค่าใช้จ่ายสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Bill"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "ไม่พบบิล",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Bill not found"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/payments": {
-      "post": {
-        "tags": ["Bills"],
-        "summary": "บันทึกการชำระเงิน",
-        "description": "ใช้สำหรับบันทึกการชำระเงิน",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["billId", "paymentMethodId", "amount", "paymentDate"],
-                "properties": {
-                  "billId": {
-                    "type": "string",
-                    "example": "bill1"
-                  },
-                  "paymentMethodId": {
-                    "type": "string",
-                    "example": "method1"
-                  },
-                  "amount": {
-                    "type": "number",
-                    "example": 5000
-                  },
-                  "paymentDate": {
-                    "type": "string",
-                    "format": "date-time",
-                    "example": "2023-02-05T12:00:00Z"
-                  },
-                  "transactionId": {
-                    "type": "string",
-                    "example": "TXN12345"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "บันทึกการชำระเงินสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Payment recorded successfully"
-                    },
-                    "payment": {
-                      "$ref": "#/components/schemas/Payment"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "ข้อมูลไม่ถูกต้องหรือไม่ครบถ้วน",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Payment amount exceeds bill amount"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": ["Bills"],
-        "summary": "ดึงข้อมูลการชำระเงิน",
-        "description": "ใช้สำหรับดึงข้อมูลการชำระเงิน",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "billId",
-            "in": "query",
-            "description": "กรองตามบิล",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "description": "กรองตามสถานะ",
-            "schema": {
-              "type": "string",
-              "enum": ["PENDING", "COMPLETED", "FAILED"]
-            }
-          },
-          {
-            "name": "startDate",
-            "in": "query",
-            "description": "กรองตามวันที่เริ่มต้น",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "endDate",
-            "in": "query",
-            "description": "กรองตามวันที่สิ้นสุด",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ดึงข้อมูลการชำระเงินสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Payment"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/announcements": {
-      "post": {
-        "tags": ["Announcements"],
-        "summary": "สร้างประกาศใหม่",
-        "description": "ใช้สำหรับสร้างประกาศใหม่ (เฉพาะเจ้าของหอพักและผู้ดูแลระบบเท่านั้น)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["title", "content", "publishDate"],
-                "properties": {
-                  "title": {
-                    "type": "string",
-                    "example": "ประกาศปิดน้ำชั่วคราว"
-                  },
-                  "content": {
-                    "type": "string",
-                    "example": "จะมีการปิดน้ำชั่วคราวในวันที่ 15 มกราคม 2566 เวลา 09.00-12.00 น. เพื่อซ่อมแซมท่อประปา"
-                  },
-                  "publishDate": {
-                    "type": "string",
-                    "format": "date-time",
-                    "example": "2023-01-10T00:00:00Z"
-                  },
-                  "expiryDate": {
-                    "type": "string",
-                    "format": "date-time",
-                    "example": "2023-01-24T23:59:59Z",
-                    "description": "ถ้าไม่ระบุจะตั้งค่าเป็น 14 วันหลังจากวันที่ประกาศ"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "สร้างประกาศสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Announcement created successfully"
-                    },
-                    "announcement": {
-                      "$ref": "#/components/schemas/Announcement"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "ข้อมูลไม่ถูกต้องหรือไม่ครบถ้วน",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Title and content are required"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "ไม่มีสิทธิ์ในการสร้างประกาศ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Forbidden: Only landlords and admins can access this resource"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": ["Announcements"],
-        "summary": "ดึงข้อมูลประกาศ",
-        "description": "ใช้สำหรับดึงข้อมูลประกาศทั้งหมด",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "isActive",
-            "in": "query",
-            "description": "กรองตามสถานะการใช้งาน",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "landlordId",
-            "in": "query",
-            "description": "กรองตามเจ้าของหอพัก",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ดึงข้อมูลประกาศสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Announcement"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/reports": {
-      "post": {
-        "tags": ["Reports"],
-        "summary": "รายงานผู้พักอาศัย",
-        "description": "ใช้สำหรับรายงานผู้พักอาศัยคนอื่น",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["reportedId", "title", "description"],
-                "properties": {
-                  "reportedId": {
-                    "type": "string",
-                    "example": "resident2"
-                  },
-                  "title": {
-                    "type": "string",
-                    "example": "เสียงดังรบกวน"
-                  },
-                  "description": {
-                    "type": "string",
-                    "example": "มีเสียงดังรบกวนจากห้องข้างๆ ในช่วงเวลากลางคืน"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "รายงานสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Report submitted successfully"
-                    },
-                    "report": {
-                      "$ref": "#/components/schemas/Report"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "ข้อมูลไม่ถูกต้องหรือไม่ครบถ้วน",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Title and description are required"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {  
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": ["Reports"],
-        "summary": "ดึงข้อมูลรายงาน",
-        "description": "ใช้สำหรับดึงข้อมูลรายงานทั้งหมด (เฉพาะเจ้าของหอพักและผู้ดูแลระบบเท่านั้น)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "status",
-            "in": "query",
-            "description": "กรองตามสถานะ",
-            "schema": {
-              "type": "string",
-              "enum": ["PENDING", "INVESTIGATING", "RESOLVED"]
-            }
-          },
-          {
-            "name": "reporterId",
-            "in": "query",
-            "description": "กรองตามผู้รายงาน",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "reportedId",
-            "in": "query",
-            "description": "กรองตามผู้ถูกรายงาน",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ดึงข้อมูลรายงานสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Report"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "ไม่มีสิทธิ์ในการดูข้อมูลรายงาน",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Forbidden: Only landlords and admins can access this resource"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/messages": {
-      "post": {
-        "tags": ["Messages"],
-        "summary": "ส่งข้อความ",
-        "description": "ใช้สำหรับส่งข้อความถึงผู้ใช้คนอื่น",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["receiverId", "content"],
-                "properties": {
-                  "receiverId": {
-                    "type": "string",
-                    "example": "user2"
-                  },
-                  "content": {
-                    "type": "string",
-                    "example": "สวัสดีครับ มีเรื่องจะปรึกษาเกี่ยวกับค่าน้ำค่าไฟ"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "ส่งข้อความสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Message sent successfully"
-                    },
-                    "sentMessage": {
-                      "$ref": "#/components/schemas/Message"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "ข้อมูลไม่ถูกต้องหรือไม่ครบถ้วน",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Receiver ID and content are required"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": ["Messages"],
-        "summary": "ดึงข้อมูลข้อความ",
-        "description": "ใช้สำหรับดึงข้อมูลข้อความของผู้ใช้ที่เข้าสู่ระบบ",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "otherUserId",
-            "in": "query",
-            "description": "กรองตามผู้ใช้อีกฝ่าย (ดึงข้อความระหว่างผู้ใช้ที่เข้าสู่ระบบกับผู้ใช้ที่ระบุ)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "isRead",
-            "in": "query",
-            "description": "กรองตามสถานะการอ่าน",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "จำนวนข้อความสูงสุดที่ต้องการดึง",
-            "schema": {
-              "type": "integer",
-              "default": 20
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "description": "จำนวนข้อความที่ต้องการข้าม",
-            "schema": {
-              "type": "integer",
-              "default": 0
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ดึงข้อมูลข้อความสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Message"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/messages/{id}/read": {
-      "put": {
-        "tags": ["Messages"],
-        "summary": "อ่านข้อความ",
-        "description": "ใช้สำหรับทำเครื่องหมายว่าข้อความถูกอ่านแล้ว",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "ID ของข้อความ",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ทำเครื่องหมายว่าอ่านแล้วสำเร็จ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Message marked as read"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "ไม่พบข้อความ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Message not found"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ไม่ได้เข้าสู่ระบบ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "ไม่มีสิทธิ์ในการอ่านข้อความนี้",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Forbidden: You can only mark your own messages as read"
+                      "example": "Cannot create first admin: users already exist in the system"
                     }
                   }
                 }
@@ -2355,45 +479,6 @@
           }
         }
       },
-      "Resident": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string"
-          },
-          "roomId": {
-            "type": "string"
-          },
-          "checkInDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "checkOutDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "user": {
-            "$ref": "#/components/schemas/User"
-          },
-          "room": {
-            "$ref": "#/components/schemas/Room"
-          }
-        }
-      },
       "Room": {
         "type": "object",
         "properties": {
@@ -2419,356 +504,6 @@
             "type": "boolean"
           }
         }
-      },
-      "Bill": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "residentId": {
-            "type": "string"
-          },
-          "totalAmount": {
-            "type": "number"
-          },
-          "billingPeriodStart": {
-            "type": "string",
-            "format": "date"
-          },
-          "billingPeriodEnd": {
-            "type": "string",
-            "format": "date"
-          },
-          "dueDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["PENDING", "PAID", "OVERDUE"]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "resident": {
-            "$ref": "#/components/schemas/Resident"
-          },
-          "billItems": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BillItem"
-            }
-          },
-          "payments": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Payment"
-            }
-          }
-        }
-      },
-      "BillItem": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "billId": {
-            "type": "string"
-          },
-          "utilityTypeId": {
-            "type": "string"
-          },
-          "amount": {
-            "type": "number"
-          },
-          "unitUsed": {
-            "type": "number"
-          },
-          "rate": {
-            "type": "number"
-          },
-          "description": {
-            "type": "string"
-          },
-          "utilityType": {
-            "$ref": "#/components/schemas/UtilityType"
-          }
-        }
-      },
-      "UtilityType": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "unit": {
-            "type": "string"
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        }
-      },
-      "Meter": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "roomId": {
-            "type": "string"
-          },
-          "utilityTypeId": {
-            "type": "string"
-          },
-          "meterNumber": {
-            "type": "string"
-          },
-          "installationDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "room": {
-            "$ref": "#/components/schemas/Room"
-          },
-          "utilityType": {
-            "$ref": "#/components/schemas/UtilityType"
-          }
-        }
-      },
-      "MeterReading": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "meterId": {
-            "type": "string"
-          },
-          "reading": {
-            "type": "number"
-          },
-          "readingDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "recordedById": {
-            "type": "string"
-          },
-          "note": {
-            "type": "string"
-          },
-          "meter": {
-            "$ref": "#/components/schemas/Meter"
-          },
-          "recordedBy": {
-            "$ref": "#/components/schemas/User"
-          }
-        }
-      },
-      "Payment": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "billId": {
-            "type": "string"
-          },
-          "paymentMethodId": {
-            "type": "string"
-          },
-          "amount": {
-            "type": "number"
-          },
-          "paymentDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "transactionId": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["PENDING", "COMPLETED", "FAILED"]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "bill": {
-            "$ref": "#/components/schemas/Bill"
-          },
-          "paymentMethod": {
-            "$ref": "#/components/schemas/PaymentMethod"
-          }
-        }
-      },
-      "PaymentMethod": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        }
-      },
-      "Announcement": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "landlordId": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "content": {
-            "type": "string"
-          },
-          "publishDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "expiryDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "landlord": {
-            "$ref": "#/components/schemas/Landlord"
-          }
-        }
-      },
-      "Landlord": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "user": {
-            "$ref": "#/components/schemas/User"
-          }
-        }
-      },
-      "Report": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "reporterId": {
-            "type": "string"
-          },
-          "reportedId": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["PENDING", "INVESTIGATING", "RESOLVED"]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "reporter": {
-            "$ref": "#/components/schemas/Resident"
-          },
-          "reported": {
-            "$ref": "#/components/schemas/Resident"
-          }
-        }
-      },
-      "Message": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "senderId": {
-            "type": "string"
-          },
-          "receiverId": {
-            "type": "string"
-          },
-          "content": {
-            "type": "string"
-          },
-          "isRead": {
-            "type": "boolean"
-          },
-          "sentAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "readAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "sender": {
-            "$ref": "#/components/schemas/User"
-          },
-          "receiver": {
-            "$ref": "#/components/schemas/User"
-          }
-        }
       }
     },
     "securitySchemes": {
@@ -2779,4 +514,5 @@
       }
     }
   }
-}}}
+}
+

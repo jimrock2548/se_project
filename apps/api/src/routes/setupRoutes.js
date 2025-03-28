@@ -1,8 +1,26 @@
-const express = require('express');
-const router = express.Router();
-const setupController = require('../controllers/setupController');
+const express = require("express")
+const router = express.Router()
+const setupController = require("../controllers/setupController")
+const authMiddleware = require("../middleware/auth")
 
-// สร้างผู้ใช้แรก (First Admin)
-router.post('/first-admin', setupController.createFirstAdmin);
+// Create first admin user (only works if no users exist)
+router.post("/first-admin", setupController.createFirstAdmin)
 
-module.exports = router;
+// Initialize utility types (admin only)
+router.post(
+  "/utility-types",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["ADMIN"]),
+  setupController.initializeUtilityTypes,
+)
+
+// Initialize payment methods (admin only)
+router.post(
+  "/payment-methods",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["ADMIN"]),
+  setupController.initializePaymentMethods,
+)
+
+module.exports = router
+

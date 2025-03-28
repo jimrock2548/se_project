@@ -1,15 +1,35 @@
-const express = require('express');
-const router = express.Router();
-const userController = require('../controllers/userController');
-const { authenticate, isLandlordOrAdmin } = require('../middleware/auth');
+const express = require("express")
+const router = express.Router()
+const userController = require("../controllers/userController")
+const authMiddleware = require("../middleware/auth")
 
-// ลงทะเบียนผู้ใช้ใหม่ (เฉพาะเจ้าของหอพักและผู้ดูแลระบบ)
-router.post('/register', authenticate, isLandlordOrAdmin, userController.register);
+// Get all users (admin and landlord only)
+router.get(
+  "/",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["ADMIN", "LANDLORD"]),
+  userController.getAllUsers,
+)
 
-// เปลี่ยนรหัสผ่าน
-router.post('/change-password', authenticate, userController.changePassword);
+// Get user by ID (admin, landlord, or own user)
+router.get("/:id", authMiddleware.authenticate, userController.getUserById)
 
-// อัปเดตข้อมูลส่วนตัว
-router.put('/update-profile', authenticate, userController.updateProfile);
+// Create a new user (admin and landlord only)
+router.post(
+  "/",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["ADMIN", "LANDLORD"]),
+  userController.createUser,
+)
 
-module.exports = router;
+// Update user (admin, landlord, or own user)
+router.put("/:id", authMiddleware.authenticate, userController.updateUser)
+
+// Change password (admin or own user)
+router.post("/:id/change-password", authMiddleware.authenticate, userController.changePassword)
+
+// Delete user (admin only)
+router.delete("/:id", authMiddleware.authenticate, authMiddleware.authorize(["ADMIN"]), userController.deleteUser)
+
+module.exports = router
+

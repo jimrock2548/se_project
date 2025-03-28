@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
-export default function Home() {
+export default function LoginPage() {
   const router = useRouter()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -18,7 +18,7 @@ export default function Home() {
     setError("")
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,10 +45,12 @@ export default function Home() {
       // Store token in sessionStorage regardless
       if (data.token) {
         sessionStorage.setItem("authToken", data.token)
+        // Store user data
+        sessionStorage.setItem("userData", JSON.stringify(data.user))
       }
 
       // Redirect to dashboard
-      router.push("/dashboard")
+      router.push("/landlord/home")
     } catch (error) {
       console.error("Login error:", error)
       setError("เกิดข้อผิดพลาดในการเข้าสู่ระบบ โปรดลองอีกครั้ง")
@@ -139,4 +141,3 @@ export default function Home() {
     </>
   )
 }
-

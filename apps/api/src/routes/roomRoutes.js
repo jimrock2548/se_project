@@ -1,18 +1,37 @@
-const express = require('express');
-const router = express.Router();
-const roomController = require('../controllers/roomController');
-const { authenticate, isLandlordOrAdmin } = require('../middleware/auth');
+const express = require("express")
+const router = express.Router()
+const roomController = require("../controllers/roomController")
+const authMiddleware = require("../middleware/auth")
 
-// ดึงข้อมูลห้องพักทั้งหมด
-router.get('/', authenticate, roomController.getAllRooms);
+// Get all rooms
+router.get("/", authMiddleware.authenticate, roomController.getAllRooms)
 
-// ดึงข้อมูลห้องพักตาม ID
-router.get('/:id', authenticate, roomController.getRoomById);
+// Get room by ID
+router.get("/:id", authMiddleware.authenticate, roomController.getRoomById)
 
-// เพิ่มห้องพักใหม่ (เฉพาะเจ้าของหอพักและผู้ดูแลระบบ)
-router.post('/', authenticate, isLandlordOrAdmin, roomController.createRoom);
+// Create a new room (admin and landlord only)
+router.post(
+  "/",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["ADMIN", "LANDLORD"]),
+  roomController.createRoom,
+)
 
-// อัปเดตข้อมูลห้องพัก (เฉพาะเจ้าของหอพักและผู้ดูแลระบบ)
-router.put('/:id', authenticate, isLandlordOrAdmin, roomController.updateRoom);
+// Update room (admin and landlord only)
+router.put(
+  "/:id",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["ADMIN", "LANDLORD"]),
+  roomController.updateRoom,
+)
 
-module.exports = router;
+// Delete room (admin and landlord only)
+router.delete(
+  "/:id",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["ADMIN", "LANDLORD"]),
+  roomController.deleteRoom,
+)
+
+module.exports = router
+

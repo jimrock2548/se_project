@@ -1,15 +1,16 @@
-const express = require('express');
-const router = express.Router();
-const authController = require('../controllers/authController');
-const { authenticate } = require('../middleware/auth');
+const express = require("express")
+const router = express.Router()
+const authController = require("../controllers/authController")
+const authMiddleware = require("../middleware/auth")
 
-// เข้าสู่ระบบ
-router.post('/login', authController.login);
+// Login route
+router.post("/login", authController.login)
 
-// ออกจากระบบ
-router.post('/logout', authenticate, authController.logout);
+// Get current user info (protected route)
+router.get("/me", authMiddleware.authenticate, authController.getCurrentUser)
 
-// ดึงข้อมูลเซสชันปัจจุบัน
-router.get('/session', authenticate, authController.getSession);
+// Logout route (optional for JWT)
+router.post("/logout", authController.logout)
 
-module.exports = router;
+module.exports = router
+

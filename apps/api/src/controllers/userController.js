@@ -1,160 +1,190 @@
-const bcrypt = require('bcrypt');
-const prisma = require('../services/prisma');
+const bcrypt = require("bcrypt")
+const prisma = require("../config/prisma")
+const authConfig = require("../config/auth")
 
-// ลงทะเบียนผู้ใช้ใหม่
-const register = async (req, res) => {
+// Get all users
+exports.getAllUsers = async (req, res) => {
   try {
-    const { username, email, fullName, phone, role, roomId, checkInDate } = req.body;
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
 
-    // สร้างรหัสผ่านชั่วคราวแบบสุ่ม
-    const tempPassword = Math.random().toString(36).slice(-8);
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    return res.status(200).json({ users })
+  } catch (error) {
+    console.error("Get all users error:", error)
+    return res.status(500).json({ error: "Internal server error" })
+  }
+}
 
-    // ตรวจสอบว่า username และ email ไม่ซ้ำกับที่มีอยู่แล้ว
+// Get user by ID
+exports.getUserById = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+        resident: {
+          select: {
+            id: true,
+            roomId: true,
+            checkInDate: true,
+            checkOutDate: true,
+            isActive: true,
+          },
+        },
+        landlord: {
+          select: {
+            id: true,
+            description: true,
+          },
+        },
+      },
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" })
+    }
+
+    return res.status(200).json({ user })
+  } catch (error) {
+    console.error("Get user by ID error:", error)
+    return res.status(500).json({ error: "Internal server error" })
+  }
+}
+
+// Create a new user
+exports.createUser = async (req, res) => {
+  try {
+    const { username, email, password, fullName, phone, role, roomId, checkInDate } = req.body
+
+    // Validate required fields
+    if (!username || !email || !password || !fullName || !role) {
+      return res.status(400).json({ error: "Username, email, password, fullName, and role are required" })
+    }
+
+    // Check if username or email already exists
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [{ username }, { email }],
       },
-    });
+    })
 
     if (existingUser) {
-      return res.status(400).json({ error: "Username or email already exists" });
+      return res.status(400).json({ error: "Username or email already exists" })
     }
 
-    // เริ่ม transaction เพื่อสร้างผู้ใช้และข้อมูลที่เกี่ยวข้อง
-    const result = await prisma.$transaction(async (tx) => {
-      // สร้างผู้ใช้ใหม่
-      const newUser = await tx.user.create({
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, authConfig.bcryptSaltRounds)
+
+    // Create user with transaction to ensure data consistency
+    const result = await prisma.$transaction(async (prisma) => {
+      // Create user
+      const newUser = await prisma.user.create({
         data: {
           username,
-          password: hashedPassword,
           email,
+          password: hashedPassword,
           fullName,
           phone,
           role,
         },
-      });
+      })
 
-      // ถ้าเป็น RESIDENT ให้สร้างข้อมูล Resident ด้วย
+      // If role is RESIDENT, create resident record
       if (role === "RESIDENT" && roomId) {
-        await tx.resident.create({
+        await prisma.resident.create({
           data: {
             userId: newUser.id,
             roomId,
-            checkInDate: new Date(checkInDate),
+            checkInDate: new Date(checkInDate || Date.now()),
             isActive: true,
           },
-        });
+        })
       }
 
-      // ถ้าเป็น LANDLORD ให้สร้างข้อมูล Landlord ด้วย
+      // If role is LANDLORD, create landlord record
       if (role === "LANDLORD") {
-        await tx.landlord.create({
+        await prisma.landlord.create({
           data: {
             userId: newUser.id,
           },
-        });
+        })
       }
 
-      return { newUser, tempPassword };
-    });
+      return newUser
+    })
 
-    res.status(201).json({
-      message: "User registered successfully",
+    return res.status(201).json({
+      message: "User created successfully",
       user: {
-        id: result.newUser.id,
-        username: result.newUser.username,
-        email: result.newUser.email,
-        role: result.newUser.role,
+        id: result.id,
+        username: result.username,
+        email: result.email,
+        fullName: result.fullName,
+        role: result.role,
       },
-      tempPassword: result.tempPassword, // ส่งรหัสผ่านชั่วคราวกลับไปให้เจ้าของหอพัก
-    });
+    })
   } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({ error: "Failed to register user" });
+    console.error("Create user error:", error)
+    return res.status(500).json({ error: "Internal server error" })
   }
-};
+}
 
-// เปลี่ยนรหัสผ่าน
-const changePassword = async (req, res) => {
+// Update user
+exports.updateUser = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    const userId = req.user.id;
+    const { id } = req.params
+    const { fullName, email, phone } = req.body
 
-    // ตรวจสอบว่ามีการส่งรหัสผ่านมาครบถ้วน
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: "Current password and new password are required" });
-    }
-
-    // ดึงข้อมูลผู้ใช้จากฐานข้อมูล
+    // Check if user exists
     const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+      where: { id },
+    })
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "User not found" })
     }
 
-    // ตรวจสอบรหัสผ่านปัจจุบัน
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
-
-    if (!isPasswordValid) {
-      return res.status(400).json({ error: "Current password is incorrect" });
-    }
-
-    // เข้ารหัสรหัสผ่านใหม่
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // อัปเดตรหัสผ่านในฐานข้อมูล
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-    });
-
-    res.json({ message: "Password changed successfully" });
-  } catch (error) {
-    console.error("Change password error:", error);
-    res.status(500).json({ error: "Failed to change password" });
-  }
-};
-
-// อัปเดตข้อมูลส่วนตัว
-const updateProfile = async (req, res) => {
-  try {
-    const { fullName, email, phone } = req.body;
-    const userId = req.user.id;
-
-    // ตรวจสอบว่ามีการส่งข้อมูลมาอย่างน้อยหนึ่งฟิลด์
-    if (!fullName && !email && !phone) {
-      return res.status(400).json({ error: "At least one field must be provided for update" });
-    }
-
-    // สร้างออบเจ็กต์สำหรับอัปเดตข้อมูล
-    const updateData = {};
-
-    if (fullName) updateData.fullName = fullName;
-    if (phone) updateData.phone = phone;
-
-    // ถ้ามีการอัปเดตอีเมล ต้องตรวจสอบว่าไม่ซ้ำกับผู้ใช้อื่น
-    if (email) {
+    // Check if email is already used by another user
+    if (email && email !== user.email) {
       const existingUser = await prisma.user.findFirst({
         where: {
           email,
-          id: { not: userId },
+          id: { not: id },
         },
-      });
+      })
 
       if (existingUser) {
-        return res.status(400).json({ error: "Email already in use by another user" });
+        return res.status(400).json({ error: "Email already in use by another user" })
       }
-
-      updateData.email = email;
     }
 
-    // อัปเดตข้อมูลผู้ใช้
+    // Update user
     const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
+      where: { id },
+      data: {
+        fullName: fullName || user.fullName,
+        email: email || user.email,
+        phone: phone || user.phone,
+      },
       select: {
         id: true,
         username: true,
@@ -163,20 +193,89 @@ const updateProfile = async (req, res) => {
         phone: true,
         role: true,
       },
-    });
+    })
 
-    res.json({
-      message: "Profile updated successfully",
+    return res.status(200).json({
+      message: "User updated successfully",
       user: updatedUser,
-    });
+    })
   } catch (error) {
-    console.error("Update profile error:", error);
-    res.status(500).json({ error: "Failed to update profile" });
+    console.error("Update user error:", error)
+    return res.status(500).json({ error: "Internal server error" })
   }
-};
+}
 
-module.exports = {
-  register,
-  changePassword,
-  updateProfile
-};
+// Change password
+exports.changePassword = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { currentPassword, newPassword } = req.body
+
+    // Validate required fields
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: "Current password and new password are required" })
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id },
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" })
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password)
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: "Current password is incorrect" })
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, authConfig.bcryptSaltRounds)
+
+    // Update password
+    await prisma.user.update({
+      where: { id },
+      data: {
+        password: hashedPassword,
+      },
+    })
+
+    return res.status(200).json({
+      message: "Password changed successfully",
+    })
+  } catch (error) {
+    console.error("Change password error:", error)
+    return res.status(500).json({ error: "Internal server error" })
+  }
+}
+
+// Delete user
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id },
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" })
+    }
+
+    // Delete user
+    await prisma.user.delete({
+      where: { id },
+    })
+
+    return res.status(200).json({
+      message: "User deleted successfully",
+    })
+  } catch (error) {
+    console.error("Delete user error:", error)
+    return res.status(500).json({ error: "Internal server error" })
+  }
+}
+

@@ -1,51 +1,57 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const prisma = require('../services/prisma');
+const bcrypt = require("bcrypt")
+const jwt = require("jsonwebtoken")
+const prisma = require("../config/prisma")
+const authConfig = require("../config/auth")
 
-// เข้าสู่ระบบ
-const login = async (req, res) => {
+// Login controller
+exports.login = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body
 
-    // ตรวจสอบว่ามีการส่งชื่อผู้ใช้และรหัสผ่านมาหรือไม่
     if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
+      return res.status(400).json({ error: "Username and password are required" })
     }
 
-    // ค้นหาผู้ใช้จากฐานข้อมูล
-    const user = await prisma.user.findUnique({
-      where: { username },
+    // Find user by username or email
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username },
+          { email: username }, // Allow login with email as well
+        ],
+      },
       include: {
         resident: true,
         landlord: true,
       },
-    });
+    })
 
-    // ถ้าไม่พบผู้ใช้
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: "Invalid credentials" })
     }
 
-    // ตรวจสอบรหัสผ่าน
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password)
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: "Invalid credentials" })
     }
 
-    // สร้าง token
+    // Generate JWT token
     const token = jwt.sign(
-      { 
-        id: user.id,
+      {
+        userId: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
+        residentId: user.resident?.id || null,
+        landlordId: user.landlord?.id || null,
       },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+      authConfig.jwtSecret,
+      { expiresIn: authConfig.jwtExpiresIn },
+    )
 
-    // ส่งข้อมูลผู้ใช้และ token กลับไป
-    res.json({
+    // Return user info and token
+    return res.status(200).json({
+      message: "Login successful",
       user: {
         id: user.id,
         username: user.username,
@@ -55,30 +61,60 @@ const login = async (req, res) => {
         residentId: user.resident?.id || null,
         landlordId: user.landlord?.id || null,
       },
-      token
-    });
+      token,
+    })
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Failed to login' });
+    console.error("Login error:", error)
+    return res.status(500).json({ error: "Internal server error" })
   }
-};
+}
 
-// ออกจากระบบ
-const logout = (req, res) => {
-  // ในกรณีของ JWT เราไม่สามารถยกเลิก token ได้โดยตรง
-  // แต่เราสามารถลบ token ที่เก็บไว้ฝั่ง client ได้
-  // ในที่นี้เราจะส่งข้อความว่าออกจากระบบสำเร็จกลับไป
-  res.json({ message: 'Logged out successfully' });
-};
+// Get current user info
+exports.getCurrentUser = async (req, res) => {
+  try {
+    // User info is already attached to req by the auth middleware
+    const { userId } = req.user
 
-// ดึงข้อมูลเซสชันปัจจุบัน
-const getSession = (req, res) => {
-  // ข้อมูลผู้ใช้ถูกเก็บไว้ใน req.user โดย middleware authenticate
-  res.json({ user: req.user });
-};
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        role: true,
+        resident: {
+          select: {
+            id: true,
+            roomId: true,
+            checkInDate: true,
+            isActive: true,
+          },
+        },
+        landlord: {
+          select: {
+            id: true,
+            description: true,
+          },
+        },
+      },
+    })
 
-module.exports = {
-  login,
-  logout,
-  getSession
-};
+    if (!user) {
+      return res.status(404).json({ error: "User not found" })
+    }
+
+    return res.status(200).json({ user })
+  } catch (error) {
+    console.error("Get current user error:", error)
+    return res.status(500).json({ error: "Internal server error" })
+  }
+}
+
+// Logout (optional, as JWT is stateless)
+exports.logout = (req, res) => {
+  // For JWT, logout is handled client-side by removing the token
+  return res.status(200).json({ message: "Logged out successfully" })
+}
+
