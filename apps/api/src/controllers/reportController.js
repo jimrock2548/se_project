@@ -1,22 +1,31 @@
 const prisma = require("../config/prisma")
 
 // Get all reports
+// Get all reports
 exports.getAllReports = async (req, res) => {
   try {
-    const { status } = req.query
-    const { role, residentId } = req.user
+    const { status } = req.query;
+    const { role, residentId, userId } = req.user;
+
+    console.log("User role:", role);
+    console.log("User ID:", userId);
+    console.log("Resident ID:", residentId);
 
     // Build filter conditions
-    const where = {}
+    const where = {};
 
     if (status) {
-      where.status = status
+      where.status = status;
     }
 
     // If user is a resident, only show their reports
-    if (role === "RESIDENT") {
-      where.reporterId = residentId
+    if (role === "RESIDENT" && residentId) {
+      where.reporterId = residentId;
     }
+
+    // ถ้าเป็น LANDLORD ไม่ต้องกรองตาม reporterId
+
+    console.log("Query where clause:", where);
 
     const reports = await prisma.report.findMany({
       where,
@@ -47,14 +56,15 @@ exports.getAllReports = async (req, res) => {
           },
         },
       },
-    })
+    });
 
-    return res.status(200).json({ reports })
+    console.log("Found reports:", reports.length);
+    return res.status(200).json({ reports });
   } catch (error) {
-    console.error("Get reports error:", error)
-    return res.status(500).json({ error: "Internal server error" })
+    console.error("Get reports error:", error);
+    return res.status(500).json({ error: "Internal server error", details: error.message });
   }
-}
+};
 
 // Create a new report
 exports.createReport = async (req, res) => {

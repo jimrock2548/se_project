@@ -13,7 +13,8 @@ const roomRoutes = require("./src/routes/roomRoutes")
 const setupRoutes = require("./src/routes/setupRoutes")
 const announcementRoutes = require("./src/routes/announcementRoutes")
 const reportRoutes = require("./src/routes/reportRoutes")
-
+//const billRoutes = require("./src/routes/billRoutes")
+//const meterReadingRoutes = require("./src/routes/meterReadingRoutes")
 // Initialize express app
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -30,6 +31,8 @@ app.use("/api/rooms", roomRoutes)
 app.use("/api/setup", setupRoutes)
 app.use("/api/announcements", announcementRoutes)
 app.use("/api/reports", reportRoutes)
+//app.use("/api/bills", billRoutes)
+//app.use("/api/meter-readings", meterReadingRoutes)
 
 // Basic route for testing
 app.get("/", (req, res) => {
