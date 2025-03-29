@@ -128,10 +128,10 @@ export default function LoginPage() {
               </div>
               <div className="text-center label-text-alt py-2">
                 <h3 className="text-black">
-                  Don't have an account?
-                  <Link href="/register" className="font-bold text-black ps-1">
-                    Register
-                  </Link>
+                  Don't have an account? 
+                </h3>
+                <h3 className="text-black">
+                  Please request an account from the administrator.
                 </h3>
               </div>
             </form>

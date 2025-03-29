@@ -9,29 +9,14 @@ router.get("/", authMiddleware.authenticate, roomController.getAllRooms)
 // Get room by ID
 router.get("/:id", authMiddleware.authenticate, roomController.getRoomById)
 
-// Create a new room (admin and landlord only)
-router.post(
-  "/",
-  authMiddleware.authenticate,
-  authMiddleware.authorize(["ADMIN", "LANDLORD"]),
-  roomController.createRoom,
-)
+// Create a new room (landlord only)
+router.post("/", authMiddleware.authenticate, authMiddleware.authorize(["LANDLORD"]), roomController.createRoom)
 
-// Update room (admin and landlord only)
-router.put(
-  "/:id",
-  authMiddleware.authenticate,
-  authMiddleware.authorize(["ADMIN", "LANDLORD"]),
-  roomController.updateRoom,
-)
+// Update room (landlord only)
+router.put("/:id", authMiddleware.authenticate, authMiddleware.authorize(["LANDLORD"]), roomController.updateRoom)
 
-// Delete room (admin and landlord only)
-router.delete(
-  "/:id",
-  authMiddleware.authenticate,
-  authMiddleware.authorize(["ADMIN", "LANDLORD"]),
-  roomController.deleteRoom,
-)
+// Delete room (landlord only)
+router.delete("/:id", authMiddleware.authenticate, authMiddleware.authorize(["LANDLORD"]), roomController.deleteRoom)
 
 module.exports = router
 

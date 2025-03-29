@@ -32,6 +32,7 @@ export default function RegisterPage() {
     setError("")
     setSuccess("")
 
+    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError("รหัสผ่านไม่ตรงกัน")
       setIsLoading(false)
@@ -39,8 +40,9 @@ export default function RegisterPage() {
     }
 
     try {
+      // Check if this is the first user (landlord setup)
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/setup/first-admin`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/setup/first-landlord`,
         {
           method: "POST",
           headers: {
@@ -65,8 +67,10 @@ export default function RegisterPage() {
       }
 
       setSuccess("ลงทะเบียนสำเร็จ! กำลังนำคุณไปยังหน้าเข้าสู่ระบบ...")
+
+      // Redirect to login page after 2 seconds
       setTimeout(() => {
-        router.push("/")
+        router.push("/login")
       }, 2000)
     } catch (error) {
       console.error("Registration error:", error)
@@ -76,56 +80,152 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-cover bg-center" 
-         style={{ backgroundImage: "url(https://img.daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.webp)" }}>
-      <div className="backdrop-blur-md bg-white/10 p-8 rounded-2xl shadow-lg w-full max-w-lg border border-white/30">
-        <h1 className="text-center text-3xl font-bold text-white mb-6">Register</h1>
-
-        {error && (
-          <div className="alert alert-error text-white text-center py-2 mb-4">{error}</div>
-        )}
-        {success && (
-          <div className="alert alert-success text-white text-center py-2 mb-4">{success}</div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {[
-            { label: "Username", name: "username", type: "text" },
-            { label: "Email", name: "email", type: "email" },
-            { label: "Full Name", name: "fullName", type: "text" },
-            { label: "Phone", name: "phone", type: "tel" },
-            { label: "Password", name: "password", type: "password" },
-            { label: "Confirm Password", name: "confirmPassword", type: "password" },
-          ].map(({ label, name, type }) => (
-            <div key={name}>
-              <label className="block text-white mb-1">{label}</label>
-              <input
-                type={type}
-                name={name}
-                className="w-full px-4 py-2 rounded-lg bg-white/20 text-white focus:outline-none"
-                value={formData[name]}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          ))}
-
-          <button
-            className="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:bg-gray-400"
-            type="submit"
-            disabled={isLoading}
-          >
-            {isLoading ? "กำลังลงทะเบียน..." : "Register"}
-          </button>
-        </form>
-
-        <div className="text-center mt-4 text-white">
-          Already have an account?
-          <Link href="/" className="font-bold text-blue-300 hover:underline ml-1">
-            Login
-          </Link>
+    <>
+      <div
+        className="hero min-h-screen"
+        style={{ backgroundImage: "url(https://img.daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.webp)" }}
+      >
+        <div className="hero-content flex-col lg:flex-row-reverse">
+          <div className="card bg-base-100 bg-opacity-50 w-full max-w-md shrink-0 shadow-2xl m-56 border-1">
+            {error && (
+              <div className="alert alert-error mt-4 mx-8">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="stroke-current shrink-0 h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span>{error}</span>
+              </div>
+            )}
+            {success && (
+              <div className="alert alert-success mt-4 mx-8">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="stroke-current shrink-0 h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span>{success}</span>
+              </div>
+            )}
+            <form className="card-body" onSubmit={handleSubmit}>
+              <div className="form-control">
+                <h1 className="text-center text-3xl font-bold pb-5 text-black">Register</h1>
+                <label className="label">
+                  <span className="label-text text-black">Username</span>
+                </label>
+                <input
+                  type="text"
+                  name="username"
+                  placeholder="Username"
+                  className="input input-bordered"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-black">Email</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Email"
+                  className="input input-bordered"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-black">Full Name</span>
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  placeholder="Full Name"
+                  className="input input-bordered"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-black">Phone</span>
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="Phone"
+                  className="input input-bordered"
+                  value={formData.phone}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-black">Password</span>
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Password"
+                  className="input input-bordered"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-black">Confirm Password</span>
+                </label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  placeholder="Confirm Password"
+                  className="input input-bordered"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="form-control mt-6">
+                <button className="btn glass text-black" type="submit" disabled={isLoading}>
+                  {isLoading ? "กำลังลงทะเบียน..." : "Register"}
+                </button>
+              </div>
+              <div className="text-center label-text-alt py-2">
+                <h3 className="text-black">
+                  Already have an account?
+                  <Link href="/" className="font-bold text-black ps-1">
+                    Login
+                  </Link>
+                </h3>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
+

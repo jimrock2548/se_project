@@ -31,7 +31,6 @@ model User {
 enum Role {
   RESIDENT
   LANDLORD
-  ADMIN
 }
 
 model Resident {

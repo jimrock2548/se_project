@@ -2,14 +2,14 @@ const bcrypt = require("bcrypt")
 const prisma = require("../config/prisma")
 const authConfig = require("../config/auth")
 
-// Create first admin user
-exports.createFirstAdmin = async (req, res) => {
+// Create first landlord user
+exports.createFirstLandlord = async (req, res) => {
   try {
     // Check if any user exists
     const userCount = await prisma.user.count()
 
     if (userCount > 0) {
-      return res.status(400).json({ error: "Cannot create first admin: users already exist in the system" })
+      return res.status(400).json({ error: "Cannot create first landlord: users already exist in the system" })
     }
 
     const { username, email, password, fullName, phone } = req.body
@@ -22,30 +22,42 @@ exports.createFirstAdmin = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, authConfig.bcryptSaltRounds)
 
-    // Create admin user
-    const adminUser = await prisma.user.create({
-      data: {
-        username,
-        email,
-        password: hashedPassword,
-        fullName,
-        phone,
-        role: "ADMIN",
-      },
+    // Create landlord user with transaction
+    const result = await prisma.$transaction(async (prisma) => {
+      // Create user
+      const newUser = await prisma.user.create({
+        data: {
+          username,
+          email,
+          password: hashedPassword,
+          fullName,
+          phone,
+          role: "LANDLORD",
+        },
+      })
+
+      // Create landlord record
+      await prisma.landlord.create({
+        data: {
+          userId: newUser.id,
+        },
+      })
+
+      return newUser
     })
 
     return res.status(201).json({
-      message: "First admin user created successfully",
+      message: "First landlord user created successfully",
       user: {
-        id: adminUser.id,
-        username: adminUser.username,
-        email: adminUser.email,
-        fullName: adminUser.fullName,
-        role: adminUser.role,
+        id: result.id,
+        username: result.username,
+        email: result.email,
+        fullName: result.fullName,
+        role: result.role,
       },
     })
   } catch (error) {
-    console.error("Create first admin error:", error)
+    console.error("Create first landlord error:", error)
     return res.status(500).json({ error: "Internal server error" })
   }
 }

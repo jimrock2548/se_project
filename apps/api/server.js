@@ -11,6 +11,8 @@ const authRoutes = require("./src/routes/authRoutes")
 const userRoutes = require("./src/routes/userRoutes")
 const roomRoutes = require("./src/routes/roomRoutes")
 const setupRoutes = require("./src/routes/setupRoutes")
+const announcementRoutes = require("./src/routes/announcementRoutes")
+const reportRoutes = require("./src/routes/reportRoutes")
 
 // Initialize express app
 const app = express()
@@ -26,6 +28,8 @@ app.use("/api/auth", authRoutes)
 app.use("/api/users", userRoutes)
 app.use("/api/rooms", roomRoutes)
 app.use("/api/setup", setupRoutes)
+app.use("/api/announcements", announcementRoutes)
+app.use("/api/reports", reportRoutes)
 
 // Basic route for testing
 app.get("/", (req, res) => {
