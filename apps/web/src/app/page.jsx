@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -49,8 +48,20 @@ export default function LoginPage() {
         sessionStorage.setItem("userData", JSON.stringify(data.user))
       }
 
-      // Redirect to dashboard
-      router.push("/landlord/home")
+      // Check user role and redirect to appropriate page
+      if (data.user && data.user.role) {
+        if (data.user.role === "RESIDENT") {
+          router.push("/auth/home")
+        } else if (data.user.role === "LANDLORD") {
+          router.push("/landlord/home")
+        } else {
+          // Default fallback for other roles
+          router.push("/auth/home")
+        }
+      } else {
+        // If role is not available, redirect to home
+        router.push("/auth/home")
+      }
     } catch (error) {
       console.error("Login error:", error)
       setError("เกิดข้อผิดพลาดในการเข้าสู่ระบบ โปรดลองอีกครั้ง")
@@ -127,12 +138,8 @@ export default function LoginPage() {
                 </button>
               </div>
               <div className="text-center label-text-alt py-2">
-                <h3 className="text-black">
-                  Don't have an account? 
-                </h3>
-                <h3 className="text-black">
-                  Please request an account from the administrator.
-                </h3>
+                <h3 className="text-black">Don't have an account?</h3>
+                <h3 className="text-black">Please request an account from the administrator.</h3>
               </div>
             </form>
           </div>
@@ -141,3 +148,4 @@ export default function LoginPage() {
     </>
   )
 }
+
