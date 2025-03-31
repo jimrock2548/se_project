@@ -13,8 +13,11 @@ const roomRoutes = require("./src/routes/roomRoutes")
 const setupRoutes = require("./src/routes/setupRoutes")
 const announcementRoutes = require("./src/routes/announcementRoutes")
 const reportRoutes = require("./src/routes/reportRoutes")
-//const billRoutes = require("./src/routes/billRoutes")
-//const meterReadingRoutes = require("./src/routes/meterReadingRoutes")
+const meterRoutes = require("./src/routes/meterRoutes")
+const meterReadingRoutes = require("./src/routes/meterReadingRoutes")
+// ถ้าคุณต้องการใช้ utilityTypeRoutes ให้ uncomment บรรทัดด้านล่าง
+// const utilityTypeRoutes = require("./src/routes/utilityTypeRoutes")
+
 // Initialize express app
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -31,8 +34,10 @@ app.use("/api/rooms", roomRoutes)
 app.use("/api/setup", setupRoutes)
 app.use("/api/announcements", announcementRoutes)
 app.use("/api/reports", reportRoutes)
-//app.use("/api/bills", billRoutes)
-//app.use("/api/meter-readings", meterReadingRoutes)
+app.use("/api/meters", meterRoutes)
+app.use("/api/meter-readings", meterReadingRoutes)
+// ถ้าคุณต้องการใช้ utilityTypeRoutes ให้ uncomment บรรทัดด้านล่าง
+// app.use("/api/utility-types", utilityTypeRoutes)
 
 // Basic route for testing
 app.get("/", (req, res) => {
