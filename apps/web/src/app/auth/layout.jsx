@@ -23,7 +23,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen flex flex-col`}>
+      <body>
         <Suspense fallback={<div>Loading...</div>}>
           <AuthLayoutClient>{children}</AuthLayoutClient>
         </Suspense>
