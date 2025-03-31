@@ -16,8 +16,8 @@ export default function ReportPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
-  const [currentUser, setCurrentUser] = useState(null)
   const router = useRouter()
+  const [currentUserResidentId, setCurrentUserResidentId] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,18 +37,17 @@ export default function ReportPage() {
           return
         }
 
+        // ดึงข้อมูลผู้ใช้จาก localStorage
+        const currentUser = JSON.parse(localStorage.getItem("user") || "{}")
+        if (!currentUser || !currentUser.id) {
+          setError("ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่")
+          router.push("/")
+          return
+        }
+
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
-        // 1. ดึงข้อมูลผู้ใช้ปัจจุบัน
-        const currentUserResponse = await axios.get(`${apiUrl}/api/users/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-
-        setCurrentUser(currentUserResponse.data.user)
-
-        // 2. ดึงข้อมูลห้องทั้งหมด (resident มีสิทธิ์เข้าถึงข้อมูลห้อง)
+        // ดึงข้อมูลห้องทั้งหมด (resident มีสิทธิ์เข้าถึงข้อมูลห้อง)
         const roomsResponse = await axios.get(`${apiUrl}/api/rooms`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -59,14 +58,27 @@ export default function ReportPage() {
         const roomsWithResidents = roomsResponse.data.rooms || []
         const allResidents = []
 
+        // หา residentId ของผู้ใช้ปัจจุบัน
+        let foundCurrentUserResidentId = null
+
         // แปลงข้อมูลห้องและผู้เช่าให้อยู่ในรูปแบบที่ต้องการ
         roomsWithResidents.forEach((room) => {
           if (room.residents && room.residents.length > 0) {
             room.residents.forEach((resident) => {
+              // เก็บ residentId ของผู้ใช้ปัจจุบัน
+              if (resident.userId === currentUser.id && resident.isActive) {
+                foundCurrentUserResidentId = resident.id
+                setCurrentUserResidentId(resident.id)
+                console.log("Found current user's residentId:", resident.id)
+
+                // บันทึก residentId ลงใน localStorage เพื่อใช้ในครั้งต่อไป
+                localStorage.setItem("currentUserResidentId", resident.id)
+              }
+
               // ข้ามผู้เช่าที่เป็นตัวเอง
-              if (resident.userId !== currentUserResponse.data.user.id && resident.isActive) {
+              if (resident.userId !== currentUser.id && resident.isActive) {
                 allResidents.push({
-                  id: resident.id,
+                  id: resident.id, // นี่คือ residentId (UUID) ที่เราต้องการ
                   userId: resident.userId,
                   displayName: resident.user?.fullName || resident.user?.username || "ผู้เช่า",
                   roomNumber: room.roomNumber || "ไม่ระบุห้อง",
@@ -77,6 +89,18 @@ export default function ReportPage() {
           }
         })
 
+        if (!foundCurrentUserResidentId) {
+          console.warn("Could not find current user's residentId in rooms data")
+
+          // ลองดึงจาก localStorage ถ้ามี
+          const savedResidentId = localStorage.getItem("currentUserResidentId")
+          if (savedResidentId) {
+            console.log("Using saved residentId from localStorage:", savedResidentId)
+            setCurrentUserResidentId(savedResidentId)
+          }
+        }
+
+        console.log("Available residents for reporting:", allResidents)
         setResidents(allResidents)
         setFilteredResidents(allResidents)
       } catch (error) {
@@ -175,6 +199,11 @@ export default function ReportPage() {
       return
     }
 
+    if (!currentUserResidentId) {
+      setError("ไม่พบข้อมูล Resident ของคุณ กรุณาติดต่อผู้ดูแลระบบ")
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     setSuccess(null)
@@ -193,10 +222,19 @@ export default function ReportPage() {
       }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+
+      // แสดงข้อมูลที่จะส่งไปยัง API เพื่อการดีบัก
+      console.log("Sending report with data:", {
+        reportedId: selectedResident.id,
+        title,
+        description,
+        currentUserResidentId,
+      })
+
       const response = await axios.post(
         `${apiUrl}/api/reports`,
         {
-          reportedId: selectedResident.id, // ใช้ resident ID ที่ถูกต้อง
+          reportedId: selectedResident.id, // ส่ง UUID ของ resident ที่ถูกรายงาน
           title,
           description,
         },
@@ -208,6 +246,7 @@ export default function ReportPage() {
         },
       )
 
+      console.log("Report submitted successfully:", response.data)
       setSuccess("รายงานถูกส่งเรียบร้อยแล้ว")
       // รีเซ็ตฟอร์ม
       setSelectedResident(null)
@@ -216,6 +255,12 @@ export default function ReportPage() {
       setReportType("DISTURBING")
     } catch (error) {
       console.error("Error submitting report:", error)
+
+      if (error.response) {
+        console.error("Error response:", error.response.data)
+        console.error("Status code:", error.response.status)
+      }
+
       setError(error.response?.data?.error || "ไม่สามารถส่งรายงานได้")
     } finally {
       setIsLoading(false)
@@ -276,6 +321,7 @@ export default function ReportPage() {
                     <div>
                       <div className="font-medium">{resident.displayName}</div>
                       <div className="text-sm text-gray-600">ห้อง {resident.roomNumber}</div>
+                      <div className="text-xs text-gray-400">ID: {resident.id}</div>
                     </div>
                   </div>
                 ))
@@ -371,7 +417,6 @@ export default function ReportPage() {
                 {isLoading ? "กำลังส่ง..." : "ส่งรายงาน"}
               </button>
 
-              <p className="text-red-500 text-sm">*****การรายงานของคุณจะถูกเก็บเป็นความลับ*****</p>
             </div>
           </form>
         </div>
