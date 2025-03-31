@@ -48,7 +48,7 @@ export default function LandlordLayout({ children }) {
       const token = sessionStorage.getItem("authToken") || localStorage.getItem("authToken")
 
       if (!token) {
-        router.push("/login")
+        router.push("/")
         return
       }
 
@@ -64,7 +64,7 @@ export default function LandlordLayout({ children }) {
           // Token is invalid or expired
           sessionStorage.removeItem("authToken")
           localStorage.removeItem("authToken")
-          router.push("/login")
+          router.push("/")
           return
         }
 
@@ -74,7 +74,7 @@ export default function LandlordLayout({ children }) {
         if (data.user.role !== "LANDLORD") {
           // Redirect to dashboard if not a landlord
           alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้ เฉพาะเจ้าของหอพักเท่านั้น")
-          router.push("/dashboard")
+          router.push("/home")
           return
         }
 
@@ -82,7 +82,7 @@ export default function LandlordLayout({ children }) {
         setIsLoading(false)
       } catch (error) {
         console.error("Authentication error:", error)
-        router.push("/login")
+        router.push("/")
       }
     }
 
@@ -229,8 +229,8 @@ export default function LandlordLayout({ children }) {
               </Link>
             </li>
             <li className="w-full border-t-1 border-base-300 pt-1">
-              <Link href="/landlord/setting_" className="hover:bg-base-300 rounded-lg text-lg">
-                ⚙️ ตั้งค่า
+              <Link href="/landlord/meter-management" className="hover:bg-base-300 rounded-lg text-lg">
+                ⚙️ ตั้งค่า มิเตอร์
               </Link>
             </li>
             <div className="mt-auto mb-4">

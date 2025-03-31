@@ -8,25 +8,60 @@ export default function LoginPage() {
   const [usernameOrEmail, setUsernameOrEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const router = useRouter()
 
   // ตรวจสอบว่ามี token อยู่แล้วหรือไม่
   useEffect(() => {
-    const token =
-      localStorage.getItem("token") ||
-      sessionStorage.getItem("token") ||
-      localStorage.getItem("authToken") ||
-      sessionStorage.getItem("authToken")
+    const checkAuth = async () => {
+      setIsCheckingAuth(true)
 
-    if (token) {
-      // ถ้ามี token อยู่แล้ว ให้ redirect ไปหน้า dashboard
-      const user = JSON.parse(localStorage.getItem("user") || "{}")
-      if (user.role === "LANDLORD") {
-        router.push("/landlord/home")
-      } else {
-        router.push("/auth/home")
+      try {
+        const token =
+          localStorage.getItem("token") ||
+          sessionStorage.getItem("token") ||
+          localStorage.getItem("authToken") ||
+          sessionStorage.getItem("authToken")
+
+        if (!token) {
+          setIsCheckingAuth(false)
+          return
+        }
+
+        // ตรวจสอบว่า token ยังใช้งานได้หรือไม่
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+        try {
+          // ทำการตรวจสอบ token โดยเรียก API ที่ต้องใช้ token
+          await axios.get(`${apiUrl}/api/users/me`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+
+          // ถ้าไม่มี error แสดงว่า token ยังใช้งานได้
+          const user = JSON.parse(localStorage.getItem("user") || "{}")
+          if (user.role === "LANDLORD") {
+            router.push("/landlord/home")
+          } else {
+            router.push("/auth/home")
+          }
+        } catch (err) {
+          // ถ้ามี error แสดงว่า token หมดอายุหรือไม่ถูกต้อง
+          console.log("Token invalid or expired, clearing...")
+          localStorage.removeItem("token")
+          sessionStorage.removeItem("token")
+          localStorage.removeItem("authToken")
+          sessionStorage.removeItem("authToken")
+          localStorage.removeItem("user")
+        }
+      } catch (err) {
+        console.error("Auth check error:", err)
+      } finally {
+        setIsCheckingAuth(false)
       }
     }
+
+    checkAuth()
   }, [router])
 
   const handleSubmit = async (e) => {
@@ -34,7 +69,7 @@ export default function LoginPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-      console.log("Attempting login to:", `${apiUrl}/auth/login`)
+      console.log("Attempting login to:", `${apiUrl}/api/auth/login`)
 
       // ส่งทั้ง username และ email ไปที่ API
       // API จะตรวจสอบว่าเป็น username หรือ email เอง
@@ -61,7 +96,7 @@ export default function LoginPage() {
 
         // เปลี่ยนเส้นทางตามบทบาท
         if (response.data.user.role === "LANDLORD") {
-          router.push("/landlord/dashboard")
+          router.push("/landlord/home")
         } else if (response.data.user.role === "RESIDENT") {
           router.push("/auth/home")
         } else {
@@ -74,6 +109,17 @@ export default function LoginPage() {
       console.error("Login error:", error)
       setError(error.response?.data?.message || "Invalid credentials")
     }
+  }
+
+  // แสดง loading ระหว่างตรวจสอบ authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-100">
+        <div className="bg-white p-8 rounded shadow-md w-96 text-center">
+          <p>กำลังตรวจสอบสถานะการเข้าสู่ระบบ...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
