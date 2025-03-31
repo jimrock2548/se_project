@@ -39,6 +39,7 @@ router.get("/", authMiddleware.authenticate, async (req, res) => {
 router.post("/", authMiddleware.authenticate, authMiddleware.authorize(["LANDLORD"]), async (req, res) => {
   try {
     const { meterId, reading, readingDate, note } = req.body
+    const { userId } = req.user
 
     // Validate required fields
     if (!meterId || reading === undefined) {
@@ -63,6 +64,11 @@ router.post("/", authMiddleware.authenticate, authMiddleware.authorize(["LANDLOR
         meter: {
           connect: { id: meterId },
         },
+        // ถ้า recordedBy เป็นฟิลด์ที่จำเป็น แต่ไม่มีในข้อมูลที่ส่งมา
+        // เราจะใช้ userId จาก token แทน
+        recordedBy: {
+          connect: { id: userId },
+        },
       },
       include: {
         meter: {
@@ -80,7 +86,7 @@ router.post("/", authMiddleware.authenticate, authMiddleware.authorize(["LANDLOR
     })
   } catch (error) {
     console.error("Create meter reading error:", error)
-    return res.status(500).json({ error: "Internal server error" })
+    return res.status(500).json({ error: "Internal server error", details: error.message })
   }
 })
 

@@ -15,6 +15,7 @@ const announcementRoutes = require("./src/routes/announcementRoutes")
 const reportRoutes = require("./src/routes/reportRoutes")
 const meterRoutes = require("./src/routes/meterRoutes")
 const meterReadingRoutes = require("./src/routes/meterReadingRoutes")
+const billRoutes = require("./src/routes/billRoutes")
 // ถ้าคุณต้องการใช้ utilityTypeRoutes ให้ uncomment บรรทัดด้านล่าง
 // const utilityTypeRoutes = require("./src/routes/utilityTypeRoutes")
 
@@ -36,6 +37,7 @@ app.use("/api/announcements", announcementRoutes)
 app.use("/api/reports", reportRoutes)
 app.use("/api/meters", meterRoutes)
 app.use("/api/meter-readings", meterReadingRoutes)
+app.use("/api/bills", billRoutes)
 // ถ้าคุณต้องการใช้ utilityTypeRoutes ให้ uncomment บรรทัดด้านล่าง
 // app.use("/api/utility-types", utilityTypeRoutes)
 
