@@ -188,19 +188,61 @@ export default function BillsFormPage() {
 
     // หาผู้เช่าในห้องนี้
     const roomResidents = room.residents?.filter((r) => r.isActive) || []
+    console.log("Room residents:", roomResidents)
+
     if (roomResidents.length > 0) {
       // ใช้ resident ID โดยตรงจากข้อมูลห้อง
       const residentId = roomResidents[0].id
-      const resident = residents.find((r) => r.id === roomResidents[0].userId)
 
-      if (resident) {
-        // เก็บ resident ID ไว้ใน object
+      try {
+        const token =
+          localStorage.getItem("token") ||
+          sessionStorage.getItem("token") ||
+          localStorage.getItem("authToken") ||
+          sessionStorage.getItem("authToken")
+
+        // ดึงข้อมูลผู้เช่าโดยตรงจาก API
+        const residentResponse = await axios.get(`${url}/api/users/${roomResidents[0].userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        console.log("Resident data:", residentResponse.data)
+
+        if (residentResponse.data && residentResponse.data.user) {
+          // เก็บ resident ID ไว้ใน object
+          setSelectedResident({
+            ...residentResponse.data.user,
+            residentId: residentId,
+          })
+        } else {
+          // ถ้าไม่สามารถดึงข้อมูลผู้เช่าได้ ให้ใช้ข้อมูลจาก residents
+          const resident = residents.find((r) => r.id === roomResidents[0].userId)
+          if (resident) {
+            setSelectedResident({
+              ...resident,
+              residentId: residentId,
+            })
+          } else {
+            // ถ้าไม่พบข้อมูลผู้เช่าในทั้งสองที่ ให้ใช้ข้อมูลจาก roomResidents
+            setSelectedResident({
+              id: roomResidents[0].userId,
+              fullName: roomResidents[0].user?.fullName || "ไม่ระบุชื่อ",
+              username: roomResidents[0].user?.username || "ไม่ระบุ username",
+              residentId: residentId,
+            })
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching resident data:", error)
+        // ถ้าไม่สามารถดึงข้อมูลผู้เช่าได้ ให้ใช้ข้อมูลจาก roomResidents
         setSelectedResident({
-          ...resident,
+          id: roomResidents[0].userId,
+          fullName: roomResidents[0].user?.fullName || "ไม่ระบุชื่อ",
+          username: roomResidents[0].user?.username || "ไม่ระบุ username",
           residentId: residentId,
         })
-      } else {
-        setSelectedResident(null)
       }
     } else {
       setSelectedResident(null)
