@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { useReactToPrint } from "react-to-print"
+import { useState, useEffect } from "react"
 import axios from "axios"
-import { Loader2, Save, Printer, CheckCircle } from "lucide-react"
+// เปลี่ยน import ไอคอน โดยลบ Printer ออก
+import { Save, CheckCircle, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
+// ในฟังก์ชัน BillsFormPage ให้ลบตัวแปรที่เกี่ยวข้องกับการพิมพ์
 export default function BillsFormPage() {
   const [datapayment, setDataPayment] = useState([])
   const [rooms, setRooms] = useState([])
@@ -40,9 +41,9 @@ export default function BillsFormPage() {
   const [waterMeter, setWaterMeter] = useState(null)
   const [electricityMeter, setElectricityMeter] = useState(null)
 
-  // สำหรับการพิมพ์
-  const printRef = useRef()
-  const [printData, setPrintData] = useState(null)
+  // ลบตัวแปรที่เกี่ยวข้องกับการพิมพ์
+  // const printRef = useRef()
+  // const [printData, setPrintData] = useState(null)
 
   const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
@@ -490,6 +491,61 @@ export default function BillsFormPage() {
     }
   }
 
+  // ลบบิล
+  const deleteBill = async (billId) => {
+    console.log("Attempting to delete bill with ID:", billId)
+
+    if (!billId) {
+      console.error("No bill ID provided")
+      alert("ไม่พบรหัสบิล ไม่สามารถลบได้")
+      return
+    }
+
+    if (!confirm("คุณต้องการลบใบชำระนี้ใช่หรือไม่?")) {
+      return
+    }
+
+    try {
+      const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("authToken") ||
+        sessionStorage.getItem("authToken")
+
+      if (!token) {
+        alert("กรุณาเข้าสู่ระบบก่อน")
+        router.push("/")
+        return
+      }
+
+      // ถามว่าต้องการลบข้อมูลการอ่านมิเตอร์ที่เกี่ยวข้องด้วยหรือไม่
+      const deleteReadings = confirm("ต้องการลบข้อมูลการอ่านมิเตอร์ที่เกี่ยวข้องด้วยหรือไม่?")
+
+      console.log(`Sending delete request to: ${url}/api/bills/${billId}?deleteRelatedReadings=${deleteReadings}`)
+
+      // ส่งคำขอลบบิล
+      const response = await axios.delete(`${url}/api/bills/${billId}?deleteRelatedReadings=${deleteReadings}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      console.log("Delete response:", response.data)
+
+      // อัปเดตรายการบิล
+      setDataPayment(datapayment.filter((bill) => bill.id !== billId))
+
+      alert("ลบใบชำระเรียบร้อยแล้ว")
+    } catch (err) {
+      console.error("Error deleting bill:", err)
+      if (err.response) {
+        console.error("Error response:", err.response.data)
+        console.error("Status code:", err.response.status)
+      }
+      alert(`เกิดข้อผิดพลาดในการลบบิล: ${err.response?.data?.error || err.message}`)
+    }
+  }
+
   // รีเซ็ตฟอร์ม
   const resetForm = () => {
     setRoomNumber("")
@@ -508,64 +564,9 @@ export default function BillsFormPage() {
     setElectricityMeter(null)
   }
 
-  // ฟังก์ชันสำหรับพิมพ์ใบชำระ
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-    documentTitle: `ใบชำระค่าเช่าห้อง ${selectedRoom?.roomNumber || roomNumber}`,
-  })
+  // ลบฟังก์ชัน handlePrint และ printBill
 
-  // ฟังก์ชันสำหรับพิมพ์ใบชำระเฉพาะรายการ
-  const printBill = (bill) => {
-    setPrintData({
-      roomNumber: bill.room.toString(),
-      residentName: bill.user,
-      oldWaterUnit: bill.old_water_unit || 0,
-      oldElectricityUnit: bill.old_ele_unit || 0,
-      newWaterUnit: bill.new_water_unit || 0,
-      newElectricityUnit: bill.new_ele_unit || 0,
-      waterRate: defaultwater,
-      electricityRate: defaultelectricity,
-      internetFee: defaultnet,
-      rentFee: defaultrent,
-      totalAmount: bill.billsnew,
-      billDate: new Date().toLocaleDateString("th-TH"),
-      dueDate: new Date(new Date().setDate(new Date().getDate() + 7)).toLocaleDateString("th-TH"),
-    })
-
-    // เรียกฟังก์ชันพิมพ์หลังจากข้อมูลถูกตั้งค่า
-    setTimeout(() => {
-      handlePrint()
-    }, 100)
-  }
-
-  // แสดง loading state
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <span className="ml-2 text-lg">กำลังโหลดข้อมูล...</span>
-      </div>
-    )
-  }
-
-  // แสดง error state
-  if (error) {
-    return (
-      <div className="p-6 min-h-screen">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          <p className="font-bold">ข้อผิดพลาด</p>
-          <p>{error}</p>
-          <button
-            className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-            onClick={() => (window.location.href = "/")}
-          >
-            ไปยังหน้าเข้าสู่ระบบ
-          </button>
-        </div>
-      </div>
-    )
-  }
-
+  // ลบ handlePrint จาก formProps
   const formProps = {
     roomNumber,
     setRoomNumber,
@@ -600,13 +601,13 @@ export default function BillsFormPage() {
     calculateBill,
     saveBill,
     resetForm,
-    handlePrint,
   }
 
+  // ลบ printBill จาก billListProps
   const billListProps = {
     datapayment,
     setDataPayment,
-    printBill,
+    deleteBill,
   }
 
   return (
@@ -627,35 +628,12 @@ export default function BillsFormPage() {
         </div>
       </div>
 
-      {/* ส่วนที่ซ่อนไว้สำหรับการพิมพ์ */}
-      <div className="hidden">
-        <div ref={printRef}>
-          <PrintableBillComponent
-            data={
-              printData || {
-                roomNumber: selectedRoom?.roomNumber,
-                residentName: selectedResident?.fullName,
-                oldWaterUnit,
-                oldElectricityUnit,
-                newWaterUnit,
-                newElectricityUnit,
-                waterRate: defaultwater,
-                electricityRate: defaultelectricity,
-                internetFee: defaultnet,
-                rentFee: defaultrent,
-                totalAmount: totalAll,
-                billDate: new Date(billDate).toLocaleDateString("th-TH"),
-                dueDate: new Date(dueDate).toLocaleDateString("th-TH"),
-              }
-            }
-          />
-        </div>
-      </div>
+      {/* ลบส่วนที่ซ่อนไว้สำหรับการพิมพ์ */}
     </div>
   )
 }
 
-// BillForm Component
+// ลบ handlePrint จาก BillFormComponent props
 function BillFormComponent({
   roomNumber,
   setRoomNumber,
@@ -690,7 +668,6 @@ function BillFormComponent({
   calculateBill,
   saveBill,
   resetForm,
-  handlePrint,
 }) {
   return (
     <>
@@ -873,16 +850,13 @@ function BillFormComponent({
             </fieldset>
           </div>
 
-          {/* ปุ่มดำเนินการ */}
+          {/* ปุ่มดำเนินการ - ลบปุ่มพิมพ์ออก */}
           <div className="flex space-x-2 pb-7">
             <button className="btn btn-primary" onClick={calculateBill}>
               คำนวณ
             </button>
             <button className="btn btn-success" onClick={saveBill} disabled={totalAll <= 0}>
               <Save className="h-5 w-5 mr-1" /> บันทึก
-            </button>
-            <button className="btn btn-info" onClick={handlePrint} disabled={totalAll <= 0}>
-              <Printer className="h-5 w-5 mr-1" /> พิมพ์
             </button>
             <button className="btn btn-warning" onClick={resetForm}>
               รีเซ็ต
@@ -894,41 +868,22 @@ function BillFormComponent({
   )
 }
 
-// BillList Component
-function BillListComponent({ datapayment, setDataPayment, printBill }) {
+// ลบ printBill จาก BillListComponent props และลบปุ่มพิมพ์
+function BillListComponent({ datapayment, setDataPayment, deleteBill }) {
   return (
     <div className="overflow-y-scroll h-96">
       {datapayment.map((dataroom, index) => (
-        <div
-          key={dataroom.id || index}
-          tabIndex={0}
-          className="collapse collapse-plus bg-base-100 border-base-300 border mb-2"
-        >
-          <div className="collapse-title font-semibold flex items-center">
+        <div key={dataroom.id || index} className="bg-base-100 border-base-300 border mb-2 rounded-lg">
+          <div className="p-4 font-semibold flex items-center justify-between">
             <span>
               User: {dataroom.user} ({dataroom.room})
             </span>
-            <div className="ml-auto flex items-center">
+            <div className="flex items-center space-x-2">
               {dataroom.status === "PENDING" && <span className="badge badge-warning mr-2">รอชำระ</span>}
               {dataroom.status === "PAID" && <span className="badge badge-success mr-2">ชำระแล้ว</span>}
               {dataroom.status === "OVERDUE" && <span className="badge badge-error mr-2">เกินกำหนด</span>}
-            </div>
-          </div>
-          <div className="collapse-content text-sm">
-            <p>รายการใบชำระค้าง:</p>
-            <p>
-              - {dataroom.billsnew} บาท ({dataroom.datenew})
-            </p>
-            {dataroom.billsold > 0 && (
-              <p>
-                - {dataroom.billsold} บาท ({dataroom.dateold})
-              </p>
-            )}
 
-            <div className="flex justify-end mt-4 space-x-2">
-              <button className="btn btn-sm btn-info" onClick={() => printBill(dataroom)}>
-                <Printer className="h-4 w-4 mr-1" /> พิมพ์
-              </button>
+              {/* ย้ายปุ่มมาไว้ด้านนอก collapse */}
               <button
                 className="btn btn-sm btn-success"
                 onClick={() => {
@@ -942,130 +897,42 @@ function BillListComponent({ datapayment, setDataPayment, printBill }) {
               >
                 <CheckCircle className="h-4 w-4 mr-1" /> ชำระแล้ว
               </button>
-            </div>
 
-            {dataroom.slip ? (
-              <div className="mt-2">
-                <p className="mb-1">หลักฐานการชำระเงิน:</p>
-                <img src={dataroom.slip || "/placeholder.svg"} alt="ใบเสร็จ" className="w-64 h-auto rounded-lg mt-2" />
-              </div>
-            ) : (
-              <p className="text-gray-500 mt-2">ไม่มีภาพใบเสร็จ</p>
-            )}
+              {/* ปุ่มลบอยู่ด้านนอก collapse */}
+              {dataroom.id && (
+                <button className="btn btn-sm btn-error" onClick={() => deleteBill(dataroom.id)}>
+                  <Trash2 className="h-4 w-4 mr-1" /> ลบ
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* แยก collapse content ออกมา */}
+          <details className="collapse">
+            <summary className="collapse-title text-sm">ดูรายละเอียดเพิ่มเติม</summary>
+            <div className="collapse-content text-sm">
+              <p>รายการใบชำระค้าง:</p>
+              <p>
+                - {dataroom.billsnew} บาท ({dataroom.datenew})
+              </p>
+              {dataroom.billsold > 0 && (
+                <p>
+                  - {dataroom.billsold} บาท ({dataroom.dateold})
+                </p>
+              )}
+
+              {dataroom.slip ? (
+                <div className="mt-2">
+                  <p className="mb-1">หลักฐานการชำระเงิน:</p>
+                  <img src={dataroom.slip || "/placeholder.svg"} alt="ใบเสร็จ" className="w-64 h-auto rounded-lg mt-2" />
+                </div>
+              ) : (
+                <p className="text-gray-500 mt-2">ไม่มีภาพใบเสร็จ</p>
+              )}
+            </div>
+          </details>
         </div>
       ))}
-    </div>
-  )
-}
-
-// PrintableBill Component
-function PrintableBillComponent({ data }) {
-  if (!data || !data.roomNumber) {
-    return null
-  }
-
-  const {
-    roomNumber,
-    residentName,
-    oldWaterUnit,
-    oldElectricityUnit,
-    newWaterUnit,
-    newElectricityUnit,
-    waterRate,
-    electricityRate,
-    internetFee,
-    rentFee,
-    totalAmount,
-    billDate,
-    dueDate,
-  } = data
-
-  const waterUsed = Math.max(0, newWaterUnit - oldWaterUnit)
-  const electricityUsed = Math.max(0, newElectricityUnit - oldElectricityUnit)
-  const waterCost = waterUsed * waterRate
-  const electricityCost = electricityUsed * electricityRate
-
-  return (
-    <div className="p-8 bg-white text-black">
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold">ใบแจ้งค่าเช่าและค่าบริการ</h1>
-        <h2 className="text-xl">S.T. APARTMENT</h2>
-        <p>วันที่ออกบิล: {billDate}</p>
-        <p>วันครบกำหนดชำระ: {dueDate}</p>
-      </div>
-
-      <div className="mb-4">
-        <h3 className="font-bold">ข้อมูลผู้เช่า</h3>
-        <p>ห้อง: {roomNumber}</p>
-        <p>ชื่อผู้เช่า: {residentName || "ไม่ระบุ"}</p>
-      </div>
-
-      <table className="w-full border-collapse mb-4">
-        <thead>
-          <tr className="border-b-2 border-black">
-            <th className="text-left p-2">รายการ</th>
-            <th className="text-right p-2">หน่วยเก่า</th>
-            <th className="text-right p-2">หน่วยใหม่</th>
-            <th className="text-right p-2">หน่วยที่ใช้</th>
-            <th className="text-right p-2">ราคาต่อหน่วย</th>
-            <th className="text-right p-2">จำนวนเงิน</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="border-b border-gray-300">
-            <td className="p-2">ค่าน้ำประปา</td>
-            <td className="text-right p-2">{oldWaterUnit}</td>
-            <td className="text-right p-2">{newWaterUnit}</td>
-            <td className="text-right p-2">{waterUsed}</td>
-            <td className="text-right p-2">{waterRate}</td>
-            <td className="text-right p-2">{waterCost.toFixed(2)}</td>
-          </tr>
-          <tr className="border-b border-gray-300">
-            <td className="p-2">ค่าไฟฟ้า</td>
-            <td className="text-right p-2">{oldElectricityUnit}</td>
-            <td className="text-right p-2">{newElectricityUnit}</td>
-            <td className="text-right p-2">{electricityUsed}</td>
-            <td className="text-right p-2">{electricityRate}</td>
-            <td className="text-right p-2">{electricityCost.toFixed(2)}</td>
-          </tr>
-          <tr className="border-b border-gray-300">
-            <td className="p-2">ค่าอินเทอร์เน็ต</td>
-            <td className="text-right p-2">-</td>
-            <td className="text-right p-2">-</td>
-            <td className="text-right p-2">1</td>
-            <td className="text-right p-2">{internetFee}</td>
-            <td className="text-right p-2">{internetFee.toFixed(2)}</td>
-          </tr>
-          <tr className="border-b border-gray-300">
-            <td className="p-2">ค่าเช่าห้อง</td>
-            <td className="text-right p-2">-</td>
-            <td className="text-right p-2">-</td>
-            <td className="text-right p-2">1</td>
-            <td className="text-right p-2">{rentFee}</td>
-            <td className="text-right p-2">{rentFee.toFixed(2)}</td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr className="font-bold">
-            <td colSpan="5" className="text-right p-2">
-              รวมทั้งสิ้น
-            </td>
-            <td className="text-right p-2">{totalAmount.toFixed(2)}</td>
-          </tr>
-        </tfoot>
-      </table>
-
-      <div className="mt-8 flex justify-between">
-        <div>
-          <p className="mb-16">ลงชื่อ ________________________</p>
-          <p className="text-center">ผู้จัดการหอพัก</p>
-        </div>
-        <div>
-          <p className="mb-16">ลงชื่อ ________________________</p>
-          <p className="text-center">ผู้เช่า</p>
-        </div>
-      </div>
     </div>
   )
 }

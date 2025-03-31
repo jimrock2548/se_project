@@ -389,5 +389,61 @@ router.patch("/:id", authMiddleware.authenticate, authMiddleware.authorize(["LAN
   }
 })
 
+// เพิ่ม route สำหรับลบบิล
+router.delete("/:id", authMiddleware.authenticate, authMiddleware.authorize(["LANDLORD"]), async (req, res) => {
+  try {
+    const { id } = req.params
+    const { deleteRelatedReadings } = req.query // ตัวเลือกสำหรับลบ meter readings ที่เกี่ยวข้อง
+
+    console.log(`Attempting to delete bill with ID: ${id}`)
+    console.log(`Delete related readings: ${deleteRelatedReadings}`)
+
+    // ตรวจสอบว่าบิลมีอยู่จริงหรือไม่
+    const bill = await prisma.bill.findUnique({
+      where: { id },
+      include: {
+        billItems: true,
+      },
+    })
+
+    if (!bill) {
+      console.log(`Bill with ID ${id} not found`)
+      return res.status(404).json({ error: "Bill not found" })
+    }
+
+    console.log(`Found bill with ${bill.billItems?.length || 0} items`)
+
+    // ลบ bill items ก่อน (เพื่อป้องกัน foreign key constraint)
+    if (bill.billItems && bill.billItems.length > 0) {
+      console.log(`Deleting ${bill.billItems.length} bill items`)
+      await prisma.billItem.deleteMany({
+        where: {
+          billId: id,
+        },
+      })
+      console.log("Bill items deleted successfully")
+    }
+
+    // ลบบิล
+    console.log(`Deleting bill with ID: ${id}`)
+    await prisma.bill.delete({
+      where: { id },
+    })
+    console.log("Bill deleted successfully")
+
+    // ถ้ามีการระบุให้ลบ meter readings ที่เกี่ยวข้อง
+    if (deleteRelatedReadings === "true") {
+      console.log("Note: Related meter readings were not deleted as the relationship is not tracked")
+    }
+
+    return res.status(200).json({
+      message: "Bill deleted successfully",
+    })
+  } catch (error) {
+    console.error("Delete bill error:", error)
+    return res.status(500).json({ error: "Internal server error", details: error.message })
+  }
+})
+
 module.exports = router
 

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import axios from "axios"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
+  const [usernameOrEmail, setUsernameOrEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const router = useRouter()
@@ -22,7 +22,7 @@ export default function LoginPage() {
       // ถ้ามี token อยู่แล้ว ให้ redirect ไปหน้า dashboard
       const user = JSON.parse(localStorage.getItem("user") || "{}")
       if (user.role === "LANDLORD") {
-        router.push("/landlord/dashboard")
+        router.push("/landlord/home")
       } else {
         router.push("/auth/home")
       }
@@ -36,8 +36,11 @@ export default function LoginPage() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
       console.log("Attempting login to:", `${apiUrl}/auth/login`)
 
-      const response = await axios.post(`${apiUrl}/auth/login`, {
-        email,
+      // ส่งทั้ง username และ email ไปที่ API
+      // API จะตรวจสอบว่าเป็น username หรือ email เอง
+      const response = await axios.post(`${apiUrl}/api/auth/login`, {
+        username: usernameOrEmail, // ส่งเป็น username
+        email: usernameOrEmail, // ส่งเป็น email ด้วย
         password,
       })
 
@@ -80,15 +83,16 @@ export default function LoginPage() {
         {error && <div className="text-red-500 mb-4">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">
-              Email
+            <label htmlFor="usernameOrEmail" className="block text-gray-700 text-sm font-bold mb-2">
+              Username or Email
             </label>
             <input
-              type="email"
-              id="email"
+              type="text"
+              id="usernameOrEmail"
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={usernameOrEmail}
+              onChange={(e) => setUsernameOrEmail(e.target.value)}
+              placeholder="Enter your username or email"
             />
           </div>
           <div className="mb-6">
@@ -101,6 +105,7 @@ export default function LoginPage() {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
             />
           </div>
           <div className="flex items-center justify-between">

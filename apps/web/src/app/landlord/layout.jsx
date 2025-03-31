@@ -224,8 +224,8 @@ export default function LandlordLayout({ children }) {
               </Link>
             </li>
             <li className="w-full pb-1">
-              <Link href="/landlord/list" className="hover:bg-base-300 rounded-lg text-lg">
-                👤 รายชื่อผู้อยู่อาศัย
+              <Link href="/landlord/room-management" className="hover:bg-base-300 rounded-lg text-lg">
+                👤 รายชื่อผู้อยู่อาศัย / จัดการห้อง
               </Link>
             </li>
             <li className="w-full border-t-1 border-base-300 pt-1">
