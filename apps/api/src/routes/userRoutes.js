@@ -191,5 +191,53 @@ router.put("/password", authMiddleware.authenticate, async (req, res) => {
   }
 })
 
+// เพิ่ม route สำหรับรีเซ็ตรหัสผ่าน
+// เพิ่มต่อจากส่วนท้ายของไฟล์ ก่อน module.exports
+
+// รีเซ็ตรหัสผ่านผู้ใช้ (สำหรับผู้ดูแลระบบ)
+router.put(
+  "/:id/reset-password",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["LANDLORD"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params
+      const { newPassword } = req.body
+
+      // ตรวจสอบว่ามีรหัสผ่านใหม่หรือไม่
+      if (!newPassword) {
+        return res.status(400).json({ error: "กรุณาระบุรหัสผ่านใหม่" })
+      }
+
+      // ตรวจสอบว่าผู้ใช้มีอยู่หรือไม่
+      const user = await prisma.user.findUnique({
+        where: { id },
+      })
+
+      if (!user) {
+        return res.status(404).json({ error: "ไม่พบผู้ใช้" })
+      }
+
+      // เข้ารหัสรหัสผ่านใหม่
+      const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+      // อัปเดตรหัสผ่าน
+      await prisma.user.update({
+        where: { id },
+        data: {
+          password: hashedPassword,
+        },
+      })
+
+      return res.status(200).json({
+        message: "รีเซ็ตรหัสผ่านสำเร็จ",
+      })
+    } catch (error) {
+      console.error("Reset password error:", error)
+      return res.status(500).json({ error: "เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน" })
+    }
+  },
+)
+
 module.exports = router
 
