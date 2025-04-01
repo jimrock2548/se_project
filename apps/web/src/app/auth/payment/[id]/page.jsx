@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import axios from "axios"
-import { AlertCircle, FileText, ArrowLeft, Calendar, DollarSign, Clock } from "lucide-react"
+import { AlertCircle, FileText, ArrowLeft, Calendar, DollarSign, Clock, CheckCircle } from "lucide-react"
 import { use } from "react" // เพิ่ม import use จาก React
 
 export default function BillDetailPage({ params }) {
@@ -252,43 +252,88 @@ export default function BillDetailPage({ params }) {
         </div>
 
         <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-3">รายละเอียดค่าใช้จ่าย</h2>
+          <h2 className="text-lg font-semibold mb-3 flex items-center">
+            <FileText className="h-5 w-5 mr-2" />
+            ใบเสร็จรับเงิน
+          </h2>
 
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2">รายการ</th>
-                  <th className="text-right py-2">จำนวนหน่วย</th>
-                  <th className="text-right py-2">ราคาต่อหน่วย</th>
-                  <th className="text-right py-2">จำนวนเงิน</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bill.billItems && bill.billItems.length > 0 ? (
-                  bill.billItems.map((item, index) => (
-                    <tr key={item.id || index} className="border-b">
-                      <td className="py-2">{item.description}</td>
-                      <td className="text-right py-2">{item.unitUsed || "-"}</td>
-                      <td className="text-right py-2">{item.rate ? formatCurrency(item.rate) : "-"}</td>
-                      <td className="text-right py-2">{formatCurrency(item.amount)}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="text-center py-4 text-gray-500">
-                      ไม่มีรายละเอียดค่าใช้จ่าย
-                    </td>
-                  </tr>
-                )}
-                <tr className="font-bold">
-                  <td colSpan="3" className="text-right py-2">
-                    รวมทั้งสิ้น:
-                  </td>
-                  <td className="text-right py-2">{formatCurrency(bill.totalAmount)}</td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+            {/* Header */}
+            <div className="border-b pb-4 mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-xl font-bold">ใบเสร็จรับเงิน</h3>
+                <div className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(bill.status)}`}>
+                  {getStatusText(bill.status)}
+                </div>
+              </div>
+              <p className="text-gray-500 text-sm">เลขที่: {bill.id.substring(0, 8).toUpperCase()}</p>
+            </div>
+
+            {/* Billing Info */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <p className="text-gray-500 text-sm mb-1">ผู้เช่า</p>
+                <p className="font-medium">{bill.resident?.user?.fullName || "-"}</p>
+                <p className="text-sm">ห้อง {bill.resident?.room?.roomNumber || "-"}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-gray-500 text-sm mb-1">วันที่ออกใบเสร็จ</p>
+                <p className="font-medium">{formatDate(bill.createdAt)}</p>
+                <p className="text-sm">
+                  รอบบิล: {formatDate(bill.billingPeriodStart)} - {formatDate(bill.billingPeriodEnd)}
+                </p>
+              </div>
+            </div>
+
+            {/* Bill Items - แสดงเฉพาะยอดรวม */}
+            <div className="border-t border-b py-4 mb-4 text-center">
+              <p className="text-gray-500 mb-2">ไม่มีรายละเอียดค่าใช้จ่าย</p>
+              <p className="text-xl font-bold">{formatCurrency(bill.totalAmount)}</p>
+            </div>
+
+            {/* Total */}
+            <div className="flex justify-between items-center text-lg font-bold mb-6">
+              <span>ยอดรวมทั้งสิ้น</span>
+              <span>{formatCurrency(bill.totalAmount)}</span>
+            </div>
+
+            {/* Payment Info */}
+            {bill.payments && bill.payments.length > 0 && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2 flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                  ข้อมูลการชำระเงิน
+                </h4>
+                {bill.payments.map((payment, index) => (
+                  <div key={payment.id || index} className="text-sm">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-gray-600">วันที่ชำระ:</span>
+                      <span>{formatDate(payment.paymentDate)}</span>
+                    </div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-gray-600">จำนวนเงิน:</span>
+                      <span className="font-medium">{formatCurrency(payment.amount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">วิธีการชำระ:</span>
+                      <span>{payment.paymentMethod?.name || "โอนเงินผ่านธนาคาร"}</span>
+                    </div>
+                    {payment.transactionId && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">เลขที่อ้างอิง:</span>
+                        <span>{payment.transactionId}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="mt-6 text-center text-sm text-gray-500">
+              <p>ขอบคุณสำหรับการชำระเงิน</p>
+              <p>หากมีข้อสงสัยกรุณาติดต่อผู้ดูแลหอพัก</p>
+            </div>
           </div>
         </div>
 

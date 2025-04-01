@@ -31,8 +31,21 @@ export default function PaymentPage() {
   // เพิ่มตัวแปรสำหรับตรวจสอบการเชื่อมต่อ API
   const [apiConnected, setApiConnected] = useState(true)
 
+  // แก้ไขส่วนของการแสดงรูปภาพสลิปในหน้าประวัติการชำระเงิน
+  // เพิ่มฟังก์ชันนี้ในส่วนต้นของ component
+  const [localSlipImages, setLocalSlipImages] = useState({})
+
+  // ฟังก์ชันเปิดรูปภาพแบบเต็มหน้าจอ
+  const openFullScreenImage = (imageUrl) => {
+    window.open(imageUrl, "_blank", "noopener,noreferrer")
+  }
+
   // แก้ไขส่วนของการแสดงบิลปัจจุบัน
   useEffect(() => {
+    // โหลดรูปภาพสลิปจาก localStorage
+    const savedImages = JSON.parse(localStorage.getItem("slipImages") || "{}")
+    setLocalSlipImages(savedImages)
+
     fetchBillData()
   }, [])
 
@@ -86,7 +99,7 @@ export default function PaymentPage() {
         // เรียงลำดับตามวันที่สร้าง (ล่าสุดก่อน)
         pendingBills.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
-        // ใช้��ิลล่าสุดที่ยังไม่ได้ชำระเป็นบิลปัจจุบัน
+        // ใช้บิลล่าสุดที่ยังไม่ได้ชำระเป็นบิลปัจจุบัน
         if (pendingBills.length > 0) {
           setCurrentBill(pendingBills[0])
         } else {
@@ -319,11 +332,21 @@ export default function PaymentPage() {
       formData.append("paymentDate", new Date().toISOString())
       formData.append("amount", currentBill.totalAmount)
 
+      // เพิ่มการส่ง transaction ID ไปด้วย
+      if (verificationData && verificationData.verified && verificationData.transRef) {
+        formData.append("transactionId", verificationData.transRef)
+      }
+
       // เพิ่มสถานะการชำระเงิน
       if (verificationData && verificationData.verified && verificationData.amountMatched) {
         formData.append("status", "COMPLETED")
       } else {
         formData.append("status", "PENDING")
+      }
+
+      // เพิ่มข้อมูลการตรวจสอบสลิปทั้งหมด
+      if (verificationData && verificationData.verified) {
+        formData.append("verificationResult", JSON.stringify(verificationData))
       }
 
       console.log("Sending payment data to:", `${apiUrl}/api/bills/${currentBill.id}/payment`)
@@ -722,45 +745,98 @@ export default function PaymentPage() {
 
           {billHistory && billHistory.length > 0 ? (
             <div className="overflow-y-auto max-h-[600px]">
-              {billHistory.map((bill) => (
-                <div key={bill.id} className="mb-4 p-4 border rounded-lg hover:bg-gray-50">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">บิลเดือน {formatDate(bill.billingPeriodStart)}</span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(bill.status)}`}>
-                      {getStatusText(bill.status)}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">ยอดรวม:</span>
-                    <span className="font-medium">{formatCurrency(bill.totalAmount)}</span>
-                  </div>
-
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">กำหนดชำระ:</span>
-                    <span>{formatDate(bill.dueDate)}</span>
-                  </div>
-
-                  {bill.payments && bill.payments.length > 0 && (
-                    <div className="mt-2 pt-2 border-t">
-                      <p className="text-sm text-gray-600 mb-1">การชำระเงิน:</p>
-                      {bill.payments.map((payment, index) => (
-                        <div key={payment.id || index} className="flex justify-between text-sm">
-                          <span>{formatDate(payment.paymentDate)}</span>
-                          <span className="font-medium">{formatCurrency(payment.amount)}</span>
+              {/* กรองข้อมูลซ้ำโดยใช้ Set เพื่อเก็บ ID ที่แสดงไปแล้ว */}
+              {(() => {
+                const displayedBills = new Set()
+                return billHistory
+                  .filter((bill) => {
+                    // ตรวจสอบว่าบิลนี้เคยแสดงแล้วหรือไม่
+                    if (displayedBills.has(bill.id)) {
+                      return false
+                    }
+                    displayedBills.add(bill.id)
+                    return true
+                  })
+                  .map((bill) => {
+                    const dataroom = bill
+                    return (
+                      <div key={bill.id} className="mb-4 p-4 border rounded-lg hover:bg-gray-50">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium">บิลเดือน {formatDate(bill.billingPeriodStart)}</span>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(bill.status)}`}
+                          >
+                            {getStatusText(bill.status)}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  )}
 
-                  <button
-                    className="mt-2 text-sm text-blue-500 hover:text-blue-700"
-                    onClick={() => router.push(`/auth/payment/${bill.id}`)}
-                  >
-                    ดูรายละเอียดเพิ่มเติม
-                  </button>
-                </div>
-              ))}
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">ยอดรวม:</span>
+                          <span className="font-medium">{formatCurrency(bill.totalAmount)}</span>
+                        </div>
+
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">กำหนดชำระ:</span>
+                          <span>{formatDate(bill.dueDate)}</span>
+                        </div>
+
+                        {bill.payments && bill.payments.length > 0 && (
+                          <div className="mt-2 pt-2 border-t">
+                            <p className="text-sm text-gray-600 mb-1">การชำระเงิน:</p>
+                            {/* กรองข้อมูลการชำระเงินซ้ำโดยใช้ Set เพื่อเก็บ ID ที่แสดงไปแล้ว */}
+                            {(() => {
+                              const displayedPayments = new Set()
+                              return bill.payments
+                                .filter((payment) => {
+                                  // ตรวจสอบว่าการชำระเงินนี้เคยแสดงแล้วหรือไม่
+                                  if (!payment.id || displayedPayments.has(payment.id)) {
+                                    return false
+                                  }
+                                  displayedPayments.add(payment.id)
+                                  return true
+                                })
+                                .map((payment, index) => (
+                                  <div key={payment.id || index} className="flex justify-between text-sm">
+                                    <span>{formatDate(payment.paymentDate)}</span>
+                                    <span className="font-medium">{formatCurrency(payment.amount)}</span>
+                                  </div>
+                                ))
+                            })()}
+                          </div>
+                        )}
+
+                        {dataroom.slip ? (
+                          <div className="mt-2">
+                            <p className="mb-1">หลักฐานการชำระเงิน:</p>
+                            {localSlipImages[dataroom.id] ? (
+                              <img
+                                src={localSlipImages[dataroom.id] || "/placeholder.svg"}
+                                alt="ใบเสร็จ"
+                                className="w-64 h-auto rounded-lg mt-2 cursor-pointer"
+                                onClick={() => openFullScreenImage(localSlipImages[dataroom.id])}
+                              />
+                            ) : (
+                              <img
+                                src={dataroom.slip || "/placeholder.svg"}
+                                alt="ใบเสร็จ"
+                                className="w-64 h-auto rounded-lg mt-2"
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 mt-2">ไม่มีภาพใบเสร็จ</p>
+                        )}
+
+                        <button
+                          className="mt-2 text-sm text-blue-500 hover:text-blue-700"
+                          onClick={() => router.push(`/auth/payment/${bill.id}`)}
+                        >
+                          ดูรายละเอียดเพิ่มเติม
+                        </button>
+                      </div>
+                    )
+                  })
+              })()}
             </div>
           ) : (
             <div className="text-center py-8 bg-gray-50 rounded-lg">

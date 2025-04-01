@@ -504,15 +504,15 @@ router.delete("/:id", authMiddleware.authenticate, authMiddleware.authorize(["LA
   }
 })
 
-// แก้ไขฟังก์ชัน POST /:id/payment เพื่อบันทึก path ของไฟล์ลงในฐานข้อมูล
+// แก้ไขฟังก์ชัน POST /:id/payment เพื่อบันทึก transaction ID และตรวจสอบการใช้ซ้ำ
 router.post("/:id/payment", authMiddleware.authenticate, upload.single("slip"), async (req, res) => {
   try {
     const { id } = req.params
-    const { amount, paymentDate, status, verificationResult } = req.body
+    const { amount, paymentDate, status, verificationResult, transactionId } = req.body
     const { role, residentId } = req.user
 
     console.log("Received payment for bill ID:", id)
-    console.log("Payment data:", { amount, paymentDate, status })
+    console.log("Payment data:", { amount, paymentDate, status, transactionId })
 
     if (!req.file) {
       return res.status(400).json({ error: "กรุณาอัปโหลดไฟล์สลิป" })
@@ -542,6 +542,22 @@ router.post("/:id/payment", authMiddleware.authenticate, upload.single("slip"), 
       return res.status(403).json({ error: "You don't have permission to pay this bill" })
     }
 
+    // ถ้ามี transaction ID ให้ตรวจสอบว่าเคยใช้แล้วหรือไม่
+    if (transactionId) {
+      const existingPayment = await prisma.payment.findFirst({
+        where: {
+          transactionId: transactionId,
+        },
+      })
+
+      if (existingPayment) {
+        return res.status(400).json({
+          error: "สลิปนี้เคยถูกใช้ในการชำระเงินแล้ว กรุณาใช้สลิปการโอนเงินใหม่",
+          details: "Transaction ID already used",
+        })
+      }
+    }
+
     // กำหนดสถานะการชำระเงิน
     let paymentStatus = "PENDING"
 
@@ -565,7 +581,7 @@ router.post("/:id/payment", authMiddleware.authenticate, upload.single("slip"), 
       })
     }
 
-    // สร้างข้อมูลการชำระเงิน (รวมถึงบันทึก path ของไฟล์)
+    // สร้างข้อมูลการชำระเงิน (รวมถึงบันทึก path ของไฟล์และ transaction ID)
     const payment = await prisma.payment.create({
       data: {
         billId: id,
@@ -575,6 +591,7 @@ router.post("/:id/payment", authMiddleware.authenticate, upload.single("slip"), 
         status: paymentStatus,
         slipImagePath: req.file.path, // บันทึก path ของไฟล์
         verificationResult: verificationResult || null, // บันทึกผลการตรวจสอบ (ถ้ามี)
+        transactionId: transactionId || null, // บันทึก transaction ID (ถ้ามี)
       },
     })
 
