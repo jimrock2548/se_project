@@ -165,12 +165,6 @@ export default function AuthLayoutClient({ children }) {
 
           <ul className="menu bg-base-100 text-base-content min-h-screen w-80 p-4 flex flex-col items-center">
             <div className="text-base-content text-3xl font-bold p-2 pt-1">S.T. APARTMENT</div>
-            {/* Profile Image */}
-            <img
-              className="w-36 h-36 rounded-full object-cover mt-4"
-              alt="Profile"
-              src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
-            />
 
             {/* Profile Name */}
 
