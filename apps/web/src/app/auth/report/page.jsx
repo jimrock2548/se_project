@@ -45,7 +45,7 @@ export default function ReportPage() {
           return
         }
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL
 
         // ดึงข้อมูลห้องทั้งหมด (resident มีสิทธิ์เข้าถึงข้อมูลห้อง)
         const roomsResponse = await axios.get(`${apiUrl}/api/rooms`, {

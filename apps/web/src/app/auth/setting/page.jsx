@@ -29,7 +29,7 @@ export default function ProfilePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const router = useRouter()
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL
 
   useEffect(() => {
     const fetchUserData = async () => {

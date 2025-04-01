@@ -17,12 +17,8 @@ export default function PaymentPage() {
   const fileInputRef = useRef(null)
   const router = useRouter()
 
-  // เพิ่มตัวแปรสำหรับ QR Code
-  const [qrCodeUrl, setQrCodeUrl] = useState(
-    "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/QR.jpg-oAZhBnSGdzbrI1xySb1fScNC5Y5Os8.jpeg",
-  )
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL 
 
   // เพิ่มตัวแปรสำหรับการตรวจสอบ slip
   const [isVerifyingSlip, setIsVerifyingSlip] = useState(false)

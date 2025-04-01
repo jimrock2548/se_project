@@ -8,7 +8,7 @@ export default function AuthLayoutClient({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userData, setUserData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL
 
   useEffect(() => {
     // Check if user is logged in
