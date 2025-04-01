@@ -1,0 +1,259 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  password      String
+  email         String    @unique
+  phone         String?
+  fullName      String
+  role          Role      @default(RESIDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  resident      Resident?
+  landlord      Landlord?
+  meterReadings MeterReading[] @relation("RecordedBy")
+  
+  // ความสัมพันธ์สำหรับระบบแชท
+  participatedConversations Participant[]
+  messages      Message[]
+}
+
+enum Role {
+  RESIDENT
+  LANDLORD
+}
+
+model Resident {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roomId        String
+  room          Room      @relation(fields: [roomId], references: [id])
+  checkInDate   DateTime
+  checkOutDate  DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  bills         Bill[]
+  reportsBy     Report[]  @relation("ReportedBy")
+  reportsAgainst Report[] @relation("ReportedAgainst")
+}
+
+model Landlord {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  description   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  announcements Announcement[]
+}
+
+model Room {
+  id            String    @id @default(cuid())
+  roomNumber    String    @unique
+  floor         String
+  building      String?
+  roomSize      Float?
+  baseRent      Float
+  isActive      Boolean   @default(true)
+  
+  residents     Resident[]
+  meters        Meter[]
+}
+
+model Bill {
+  id                String    @id @default(cuid())
+  residentId        String
+  resident          Resident  @relation(fields: [residentId], references: [id])
+  totalAmount       Float
+  billingPeriodStart DateTime
+  billingPeriodEnd  DateTime
+  dueDate           DateTime
+  status            BillStatus @default(PENDING)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  billItems         BillItem[]
+  payments          Payment[]
+}
+
+enum BillStatus {
+  PENDING
+  PAID
+  OVERDUE
+  PROCESSING
+}
+
+model BillItem {
+  id            String    @id @default(cuid())
+  billId        String
+  bill          Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
+  utilityTypeId String?
+  utilityType   UtilityType? @relation(fields: [utilityTypeId], references: [id])
+  amount        Float
+  unitUsed      Float?
+  rate          Float?
+  description   String?
+}
+
+model UtilityType {
+  id            String    @id @default(cuid())
+  name          String
+  unit          String
+  description   String?
+  isActive      Boolean   @default(true)
+  
+  meters        Meter[]
+  utilityRates  UtilityRate[]
+  billItems     BillItem[]
+}
+
+model UtilityRate {
+  id            String    @id @default(cuid())
+  utilityTypeId String
+  utilityType   UtilityType @relation(fields: [utilityTypeId], references: [id])
+  rate          Float
+  minUnit       Float?
+  maxUnit       Float?
+  effectiveDate DateTime
+  isActive      Boolean   @default(true)
+}
+
+model Meter {
+  id            String    @id @default(cuid())
+  roomId        String
+  room          Room      @relation(fields: [roomId], references: [id])
+  utilityTypeId String
+  utilityType   UtilityType @relation(fields: [utilityTypeId], references: [id])
+  meterNumber   String
+  installationDate DateTime
+  isActive      Boolean   @default(true)
+  
+  meterReadings MeterReading[]
+}
+
+model MeterReading {
+  id            String    @id @default(cuid())
+  meterId       String
+  meter         Meter     @relation(fields: [meterId], references: [id])
+  reading       Float
+  readingDate   DateTime
+  recordedById  String
+  recordedBy    User      @relation("RecordedBy", fields: [recordedById], references: [id])
+  note          String?
+}
+
+model Payment {
+  id                String    @id @default(cuid())
+  billId            String
+  bill              Bill      @relation(fields: [billId], references: [id])
+  paymentMethodId   String
+  paymentMethod     PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  amount            Float
+  paymentDate       DateTime
+  transactionId     String?
+  status            PaymentStatus @default(PENDING)
+  slipImagePath     String?   // เพิ่มฟิลด์นี้เพื่อเก็บพาธของไฟล์ภาพสลิป
+  slipImageUrl      String?   // เพิ่มฟิลด์นี้เพื่อเก็บ URL สำหรับเข้าถึงไฟล์ภาพสลิป
+  verificationResult String?   // เพิ่มฟิลด์นี้เพื่อเก็บผลการตรวจสอบจาก SlipOK API
+  createdAt         DateTime  @default(now())
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model PaymentMethod {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  isActive      Boolean   @default(true)
+  
+  payments      Payment[]
+}
+
+model Announcement {
+  id            String    @id @default(cuid())
+  landlordId    String
+  landlord      Landlord  @relation(fields: [landlordId], references: [id])
+  title         String
+  content       String
+  publishDate   DateTime
+  expiryDate    DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Report {
+  id            String    @id @default(cuid())
+  reporterId    String
+  reporter      Resident  @relation("ReportedBy", fields: [reporterId], references: [id])
+  reportedId    String
+  reported      Resident  @relation("ReportedAgainst", fields: [reportedId], references: [id])
+  title         String
+  description   String
+  status        ReportStatus @default(PENDING)
+  response      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum ReportStatus {
+  PENDING
+  INVESTIGATING
+  RESOLVED
+  REJECTED
+}
+
+// โมเดลสำหรับระบบแชท
+model Conversation {
+  id           String         @id @default(cuid())
+  name         String?        // ชื่อของการสนทนา (อาจไม่จำเป็นสำหรับการแชทแบบ 1-1)
+  isGroup      Boolean        @default(false) // เก็บไว้เผื่อในอนาคตต้องการเพิ่มฟีเจอร์แชทกลุ่ม
+  participants Participant[]
+  messages     Message[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
+}
+
+model Participant {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  joinedAt       DateTime     @default(now())
+
+  @@unique([userId, conversationId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  content        String
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  isRead         Boolean      @default(false) // เก็บไว้เผื่อในอนาคตต้องการเพิ่มฟีเจอร์แสดงสถานะการอ่าน
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+}
+

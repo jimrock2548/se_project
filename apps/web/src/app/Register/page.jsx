@@ -1,96 +1,231 @@
-"use client";
+"use client"
 
-import Image from "next/image";
-import Link from "next/link";
-import { useState } from "react";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 
-export default function Register() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
+export default function RegisterPage() {
+  const router = useRouter()
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    fullName: "",
+    phone: "",
+  })
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
 
-    if (!name || !email || !password || !confirmPassword) {
-      setError("Please complete all input fields.");
-      return;
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+    setSuccess("")
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError("รหัสผ่านไม่ตรงกัน")
+      setIsLoading(false)
+      return
     }
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-  };
-  try{
-    
-  }catch{
+    try {
+      // Check if this is the first user (landlord setup)
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL }/api/setup/first-landlord`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: formData.username,
+            email: formData.email,
+            password: formData.password,
+            fullName: formData.fullName,
+            phone: formData.phone,
+          }),
+        },
+      )
 
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "เกิดข้อผิดพลาดในการลงทะเบียน")
+        setIsLoading(false)
+        return
+      }
+
+      setSuccess("ลงทะเบียนสำเร็จ! กำลังนำคุณไปยังหน้าเข้าสู่ระบบ...")
+
+      // Redirect to login page after 2 seconds
+      setTimeout(() => {
+        router.push("/login")
+      }, 2000)
+    } catch (error) {
+      console.error("Registration error:", error)
+      setError("เกิดข้อผิดพลาดในการลงทะเบียน โปรดลองอีกครั้ง")
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div
-      className="hero min-h-screen"
-      style={{ backgroundImage: "url(https://img.daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.webp)" }}
-    >
-      <div className="hero-content flex-col lg:flex-row-reverse">
-        <div className="card bg-base-100 bg-opacity-50 w-full max-w-sm shrink-0 shadow-2xl m-56 border-1">
-          <form className="card-body" onSubmit={submit}>
-            <h1 className="text-center text-3xl font-bold pb-5 text-black">Register</h1>
-
-            {error && <p className="text-red-500 text-center">{error}</p>}
-            
-            {/* //Username */}
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text text-black">Username</span>
-              </label>
-              <input onChange={(e) => setName(e.target.value)} type="text" placeholder="Username" className="input input-bordered" required />
-            </div>
-
-            {/* //email */}
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text text-black">Email</span>
-              </label>
-              <input onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Email" className="input input-bordered" required />
-            </div>
-
-            {/* //password */}
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text text-black">Password</span>
-              </label>
-              <input onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Password" className="input input-bordered" required />
-            </div>
-
-            {/* //confirmPassword */}
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text text-black">Confirm Password</span>
-              </label>
-              <input onChange={(e) => setConfirmPassword(e.target.value)} type="password" placeholder="Confirm Password" className="input input-bordered" required />
-            </div>
-
-            <div className="form-control">
-              <label className="label pt-4">
-                <input type="checkbox" /> <span className="label-text-alt text-black">Remember me</span>
-                <a href="#" className="label-text-alt link link-hover text-black">Forgot password?</a>
-              </label>
-            </div>
-
-            <div className="form-control mt-6">
-              <button type="submit" className="btn glass text-black">Sign up</button>
-            </div>
-
-            <h3 className="text-center label-text-alt py-2">
-              Already have an account? <Link href="/Register" className="font-bold ps-2 text-black">Login</Link>
-            </h3>
-          </form>
+    <>
+      <div
+        className="hero min-h-screen"
+        style={{ backgroundImage: "url(https://img.daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.webp)" }}
+      >
+        <div className="hero-content flex-col lg:flex-row-reverse">
+          <div className="card bg-base-100 bg-opacity-50 w-full max-w-md shrink-0 shadow-2xl m-56 border-1">
+            {error && (
+              <div className="alert alert-error mt-4 mx-8">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="stroke-current shrink-0 h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span>{error}</span>
+              </div>
+            )}
+            {success && (
+              <div className="alert alert-success mt-4 mx-8">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="stroke-current shrink-0 h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span>{success}</span>
+              </div>
+            )}
+            <form className="card-body" onSubmit={handleSubmit}>
+              <div className="form-control">
+                <h1 className="text-center text-3xl font-bold pb-5 text-black">Register</h1>
+                <label className="label">
+                  <span className="label-text text-black">Username</span>
+                </label>
+                <input
+                  type="text"
+                  name="username"
+                  placeholder="Username"
+                  className="input input-bordered"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-black">Email</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Email"
+                  className="input input-bordered"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-black">Full Name</span>
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  placeholder="Full Name"
+                  className="input input-bordered"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-black">Phone</span>
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="Phone"
+                  className="input input-bordered"
+                  value={formData.phone}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-black">Password</span>
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Password"
+                  className="input input-bordered"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-black">Confirm Password</span>
+                </label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  placeholder="Confirm Password"
+                  className="input input-bordered"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="form-control mt-6">
+                <button className="btn glass text-black" type="submit" disabled={isLoading}>
+                  {isLoading ? "กำลังลงทะเบียน..." : "Register"}
+                </button>
+              </div>
+              <div className="text-center label-text-alt py-2">
+                <h3 className="text-black">
+                  Already have an account?
+                  <Link href="/" className="font-bold text-black ps-1">
+                    Login
+                  </Link>
+                </h3>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    </>
+  )
 }
+
