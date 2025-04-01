@@ -287,7 +287,6 @@ export default function BillDetailPage({ params }) {
 
             {/* Bill Items - แสดงเฉพาะยอดรวม */}
             <div className="border-t border-b py-4 mb-4 text-center">
-              <p className="text-gray-500 mb-2">ไม่มีรายละเอียดค่าใช้จ่าย</p>
               <p className="text-xl font-bold">{formatCurrency(bill.totalAmount)}</p>
             </div>
 

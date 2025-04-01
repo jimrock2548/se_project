@@ -23,9 +23,11 @@ model User {
   
   resident      Resident?
   landlord      Landlord?
-  sentMessages     Message[]  @relation("SentMessages")
-  receivedMessages Message[]  @relation("ReceivedMessages")
-  meterReadings    MeterReading[] @relation("RecordedBy")
+  meterReadings MeterReading[] @relation("RecordedBy")
+  
+  // ความสัมพันธ์สำหรับระบบแชท
+  participatedConversations Participant[]
+  messages      Message[]
 }
 
 enum Role {
@@ -94,17 +96,18 @@ enum BillStatus {
   PENDING
   PAID
   OVERDUE
+  PROCESSING
 }
 
 model BillItem {
   id            String    @id @default(cuid())
   billId        String
   bill          Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
-  utilityTypeId String
-  utilityType   UtilityType @relation(fields: [utilityTypeId], references: [id])
+  utilityTypeId String?
+  utilityType   UtilityType? @relation(fields: [utilityTypeId], references: [id])
   amount        Float
-  unitUsed      Float
-  rate          Float
+  unitUsed      Float?
+  rate          Float?
   description   String?
 }
 
@@ -112,6 +115,7 @@ model UtilityType {
   id            String    @id @default(cuid())
   name          String
   unit          String
+  description   String?
   isActive      Boolean   @default(true)
   
   meters        Meter[]
@@ -165,11 +169,10 @@ model Payment {
   transactionId     String?
   status            PaymentStatus @default(PENDING)
   slipImagePath     String?   // เพิ่มฟิลด์นี้เพื่อเก็บพาธของไฟล์ภาพสลิป
+  slipImageUrl      String?   // เพิ่มฟิลด์นี้เพื่อเก็บ URL สำหรับเข้าถึงไฟล์ภาพสลิป
   verificationResult String?   // เพิ่มฟิลด์นี้เพื่อเก็บผลการตรวจสอบจาก SlipOK API
   createdAt         DateTime  @default(now())
 }
-
-
 
 enum PaymentStatus {
   PENDING
@@ -193,7 +196,7 @@ model Announcement {
   title         String
   content       String
   publishDate   DateTime
-  expiryDate    DateTime
+  expiryDate    DateTime?
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -208,6 +211,7 @@ model Report {
   title         String
   description   String
   status        ReportStatus @default(PENDING)
+  response      String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -216,17 +220,40 @@ enum ReportStatus {
   PENDING
   INVESTIGATING
   RESOLVED
+  REJECTED
+}
+
+// โมเดลสำหรับระบบแชท
+model Conversation {
+  id           String         @id @default(cuid())
+  name         String?        // ชื่อของการสนทนา (อาจไม่จำเป็นสำหรับการแชทแบบ 1-1)
+  isGroup      Boolean        @default(false) // เก็บไว้เผื่อในอนาคตต้องการเพิ่มฟีเจอร์แชทกลุ่ม
+  participants Participant[]
+  messages     Message[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
+}
+
+model Participant {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  joinedAt       DateTime     @default(now())
+
+  @@unique([userId, conversationId])
 }
 
 model Message {
-  id            String    @id @default(cuid())
-  senderId      String
-  sender        User      @relation("SentMessages", fields: [senderId], references: [id])
-  receiverId    String
-  receiver      User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
-  content       String
-  isRead        Boolean   @default(false)
-  sentAt        DateTime  @default(now())
-  readAt        DateTime?
+  id             String       @id @default(cuid())
+  content        String
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  isRead         Boolean      @default(false) // เก็บไว้เผื่อในอนาคตต้องการเพิ่มฟีเจอร์แสดงสถานะการอ่าน
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
 }
 

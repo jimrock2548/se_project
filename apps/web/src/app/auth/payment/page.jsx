@@ -539,23 +539,6 @@ export default function PaymentPage() {
                   <span className="font-medium">{formatDate(currentBill.dueDate)}</span>
                 </div>
               </div>
-
-              <div className="mb-4">
-                <h3 className="font-medium mb-2">รายละเอียดค่าใช้จ่าย:</h3>
-                <div className="bg-gray-50 p-3 rounded">
-                  {currentBill.billItems && currentBill.billItems.length > 0 ? (
-                    currentBill.billItems.map((item, index) => (
-                      <div key={item.id || index} className="flex justify-between py-1">
-                        <span>{item.description}</span>
-                        <span>{formatCurrency(item.amount)}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-500 text-center">ไม่มีรายละเอียดค่าใช้จ่าย</p>
-                  )}
-                </div>
-              </div>
-
               {/* QR Code สำหรับการสแกนจ่าย */}
               {(currentBill.status === "PENDING" || currentBill.status === "OVERDUE") && (
                 <div className="mt-6 mb-6 border rounded-lg overflow-hidden shadow-md">
