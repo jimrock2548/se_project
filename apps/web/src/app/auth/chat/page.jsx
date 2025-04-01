@@ -864,7 +864,7 @@ export default function ChatPage() {
 
       {/* Modal สำหรับแสดงรายชื่อผู้ใช้ */}
       {showUserList && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-10 backdrop-blur-[2px] flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-xl font-semibold">เริ่มการสนทนาใหม่</h2>
