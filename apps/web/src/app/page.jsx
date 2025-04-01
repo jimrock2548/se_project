@@ -29,7 +29,7 @@ export default function LoginPage() {
         }
 
         // ตรวจสอบว่า token ยังใช้งานได้หรือไม่
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL 
         try {
           // ทำการตรวจสอบ token โดยเรียก API ที่ต้องใช้ token
           await axios.get(`${apiUrl}/api/users/me`, {

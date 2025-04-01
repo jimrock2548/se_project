@@ -20,7 +20,7 @@ function LandlordHomePage() {
   const [updatingReportId, setUpdatingReportId] = useState(null)
   const [openedReportId, setOpenedReportId] = useState(null)
 
-  const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+  const url = process.env.NEXT_PUBLIC_API_URL
 
   useEffect(() => {
     // ดึง token จาก localStorage หรือ sessionStorage

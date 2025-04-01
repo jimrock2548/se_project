@@ -27,7 +27,7 @@ export default function LandlordChatPage() {
   const messageInputRef = useRef(null)
   const typingTimeoutRef = useRef(null)
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL
   const router = useRouter()
 
   // เริ่มต้นการเชื่อมต่อ Socket.io

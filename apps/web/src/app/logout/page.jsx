@@ -10,7 +10,7 @@ export default function LogoutPage() {
     const logout = async () => {
       try {
         // Call logout API (optional)
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth/logout`, {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
           method: "POST",
         })
       } catch (error) {

@@ -45,7 +45,7 @@ export default function BillsFormPage() {
   // const printRef = useRef()
   // const [printData, setPrintData] = useState(null)
 
-  const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+  const url = process.env.NEXT_PUBLIC_API_URL
 
   // ดึงข้อมูลห้องและผู้เช่า
   useEffect(() => {

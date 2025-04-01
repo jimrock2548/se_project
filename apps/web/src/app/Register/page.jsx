@@ -42,7 +42,7 @@ export default function RegisterPage() {
     try {
       // Check if this is the first user (landlord setup)
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/setup/first-landlord`,
+        `${process.env.NEXT_PUBLIC_API_URL }/api/setup/first-landlord`,
         {
           method: "POST",
           headers: {
