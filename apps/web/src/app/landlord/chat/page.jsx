@@ -6,7 +6,7 @@ import axios from "axios"
 import { io } from "socket.io-client"
 import { Send, Search, Users, Menu, X, RefreshCw, PlusCircle } from "lucide-react"
 
-export default function ChatPage() {
+export default function LandlordChatPage() {
   const [conversations, setConversations] = useState([])
   const [selectedConversation, setSelectedConversation] = useState(null)
   const [messages, setMessages] = useState([])

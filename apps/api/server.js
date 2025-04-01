@@ -2,9 +2,10 @@ const express = require("express")
 const cors = require("cors")
 const bodyParser = require("body-parser")
 const dotenv = require("dotenv")
-const path = require("path") // เพิ่มบรรทัดนี้
+const path = require("path")
+const http = require("http")
 
-// Load environment variables
+// โหลดค่า environment variables
 dotenv.config()
 
 // Import routes
@@ -18,22 +19,34 @@ const meterRoutes = require("./src/routes/meterRoutes")
 const meterReadingRoutes = require("./src/routes/meterReadingRoutes")
 const billRoutes = require("./src/routes/billRoutes")
 const utilityTypeRoutes = require("./src/routes/utilityTypeRoutes")
-// เพิ่มเส้นทางใหม่สำหรับการตรวจสอบสลิป
 const slipRoutes = require("./src/routes/slipRoutes")
+const chatRoutes = require("./src/routes/chatRoutes")
 
-// Initialize express app
+// สร้าง Express app
 const app = express()
 const PORT = process.env.PORT || 5000
 
+// สร้าง HTTP server
+const server = http.createServer(app)
+
 // Middleware
-app.use(cors())
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    credentials: true,
+    allowedHeaders: ["Authorization", "Content-Type"],
+  }),
+)
+
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
-// Static files - เพิ่มส่วนนี้เพื่อให้เข้าถึงไฟล์ที่อัปโหลดได้
+// Static files
 app.use("/uploads", express.static(path.join(__dirname, "./uploads")))
+app.use("/images", express.static(path.join(__dirname, "./uploads/slips")))
 
-// Use routes
+// Routes
 app.use("/api/auth", authRoutes)
 app.use("/api/users", userRoutes)
 app.use("/api/rooms", roomRoutes)
@@ -44,18 +57,27 @@ app.use("/api/meters", meterRoutes)
 app.use("/api/meter-readings", meterReadingRoutes)
 app.use("/api/bills", billRoutes)
 app.use("/api/utility-types", utilityTypeRoutes)
-// เพิ่มเส้นทางใหม่สำหรับการตรวจสอบสลิป
 app.use("/api/slip", slipRoutes)
+app.use("/api/chat", chatRoutes)
 
-// Basic route for testing
+// Test route
 app.get("/", (req, res) => {
-  res.json({ message: "Welcome to Dormitory Management API" })
+  res.send("API is running...")
 })
 
 // Start server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`)
+
+  // เริ่มต้น Socket.io หลังจากเซิร์ฟเวอร์เริ่มทำงาน
+  try {
+    const { initializeSocket } = require("./src/socket")
+    initializeSocket(server)
+    console.log("Socket.io initialized successfully")
+  } catch (error) {
+    console.error("Failed to initialize Socket.io:", error.message)
+  }
 })
 
-module.exports = app // For testing
+module.exports = app
 
