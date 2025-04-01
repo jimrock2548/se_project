@@ -2,6 +2,7 @@ const express = require("express")
 const cors = require("cors")
 const bodyParser = require("body-parser")
 const dotenv = require("dotenv")
+const path = require("path") // เพิ่มบรรทัดนี้
 
 // Load environment variables
 dotenv.config()
@@ -16,8 +17,9 @@ const reportRoutes = require("./src/routes/reportRoutes")
 const meterRoutes = require("./src/routes/meterRoutes")
 const meterReadingRoutes = require("./src/routes/meterReadingRoutes")
 const billRoutes = require("./src/routes/billRoutes")
-// ถ้าคุณต้องการใช้ utilityTypeRoutes ให้ uncomment บรรทัดด้านล่าง
-// const utilityTypeRoutes = require("./src/routes/utilityTypeRoutes")
+const utilityTypeRoutes = require("./src/routes/utilityTypeRoutes")
+// เพิ่มเส้นทางใหม่สำหรับการตรวจสอบสลิป
+const slipRoutes = require("./src/routes/slipRoutes")
 
 // Initialize express app
 const app = express()
@@ -27,6 +29,9 @@ const PORT = process.env.PORT || 5000
 app.use(cors())
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
+
+// Static files - เพิ่มส่วนนี้เพื่อให้เข้าถึงไฟล์ที่อัปโหลดได้
+app.use("/uploads", express.static(path.join(__dirname, "./uploads")))
 
 // Use routes
 app.use("/api/auth", authRoutes)
@@ -38,8 +43,9 @@ app.use("/api/reports", reportRoutes)
 app.use("/api/meters", meterRoutes)
 app.use("/api/meter-readings", meterReadingRoutes)
 app.use("/api/bills", billRoutes)
-// ถ้าคุณต้องการใช้ utilityTypeRoutes ให้ uncomment บรรทัดด้านล่าง
-// app.use("/api/utility-types", utilityTypeRoutes)
+app.use("/api/utility-types", utilityTypeRoutes)
+// เพิ่มเส้นทางใหม่สำหรับการตรวจสอบสลิป
+app.use("/api/slip", slipRoutes)
 
 // Basic route for testing
 app.get("/", (req, res) => {

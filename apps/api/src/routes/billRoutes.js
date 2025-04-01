@@ -2,6 +2,40 @@ const express = require("express")
 const router = express.Router()
 const prisma = require("../config/prisma")
 const authMiddleware = require("../middleware/auth")
+const multer = require("multer")
+const fs = require("fs")
+const path = require("path")
+
+// กำหนดที่เก็บไฟล์สลิป
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, "../../../uploads/slips")
+
+    // สร้างโฟลเดอร์ถ้ายังไม่มี
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true })
+    }
+
+    cb(null, uploadDir)
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9)
+    cb(null, `slip-${uniqueSuffix}${path.extname(file.originalname)}`)
+  },
+})
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // จำกัดขนาดไฟล์ 5MB
+  fileFilter: (req, file, cb) => {
+    // ตรวจสอบประเภทไฟล์
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true)
+    } else {
+      cb(new Error("ไฟล์ต้องเป็นรูปภาพเท่านั้น"))
+    }
+  },
+})
 
 // Get all bills
 router.get("/", authMiddleware.authenticate, async (req, res) => {
@@ -69,17 +103,32 @@ router.get("/current", authMiddleware.authenticate, async (req, res) => {
   try {
     const { role, residentId } = req.user
 
-    if (role !== "RESIDENT" || !residentId) {
+    if (role !== "RESIDENT") {
       return res.status(403).json({ error: "Only residents can access their current bill" })
     }
 
-    // Get the most recent bill for this resident
+    if (!residentId) {
+      return res.status(404).json({ error: "Resident ID not found for this user" })
+    }
+
+    console.log(`Fetching current bill for resident ID: ${residentId}`)
+
+    // ตรวจสอบว่า residentId มีอยู่จริงหรือไม่
+    const resident = await prisma.resident.findUnique({
+      where: { id: residentId },
+    })
+
+    if (!resident) {
+      console.log(`Resident with ID ${residentId} not found`)
+      return res.status(404).json({ error: "Resident not found" })
+    }
+
+    // Get the most recent bill for this resident with status PENDING, OVERDUE, or PROCESSING
+    // แก้ไขการใช้ operator in โดยใช้ OR condition แทน
     const bill = await prisma.bill.findFirst({
       where: {
-        residentId,
-        status: {
-          in: ["PENDING", "OVERDUE"],
-        },
+        residentId: residentId,
+        OR: [{ status: "PENDING" }, { status: "OVERDUE" }, { status: "PROCESSING" }],
       },
       orderBy: {
         createdAt: "desc",
@@ -100,13 +149,23 @@ router.get("/current", authMiddleware.authenticate, async (req, res) => {
             utilityType: true,
           },
         },
+        payments: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          include: {
+            paymentMethod: true,
+          },
+        },
       },
     })
 
     if (!bill) {
+      console.log(`No current bill found for resident ID: ${residentId}`)
       return res.status(404).json({ error: "No current bill found" })
     }
 
+    console.log(`Found current bill with ID: ${bill.id}`)
     return res.status(200).json(bill)
   } catch (error) {
     console.error("Get current bill error:", error)
@@ -442,6 +501,121 @@ router.delete("/:id", authMiddleware.authenticate, authMiddleware.authorize(["LA
   } catch (error) {
     console.error("Delete bill error:", error)
     return res.status(500).json({ error: "Internal server error", details: error.message })
+  }
+})
+
+// แก้ไขฟังก์ชัน POST /:id/payment เพื่อบันทึก path ของไฟล์ลงในฐานข้อมูล
+router.post("/:id/payment", authMiddleware.authenticate, upload.single("slip"), async (req, res) => {
+  try {
+    const { id } = req.params
+    const { amount, paymentDate, status, verificationResult } = req.body
+    const { role, residentId } = req.user
+
+    console.log("Received payment for bill ID:", id)
+    console.log("Payment data:", { amount, paymentDate, status })
+
+    if (!req.file) {
+      return res.status(400).json({ error: "กรุณาอัปโหลดไฟล์สลิป" })
+    }
+
+    console.log("Uploaded file:", req.file)
+
+    // ตรวจสอบว่าผู้ใช้เป็น resident หรือไม่
+    if (role !== "RESIDENT" || !residentId) {
+      return res.status(403).json({ error: "Only residents can make payments" })
+    }
+
+    // ดึงข้อมูลบิลตาม ID
+    const bill = await prisma.bill.findUnique({
+      where: { id },
+      include: {
+        resident: true,
+      },
+    })
+
+    if (!bill) {
+      return res.status(404).json({ error: "Bill not found" })
+    }
+
+    // ตรวจสอบว่าบิลนี้เป็นของ resident ที่กำลังทำรายการหรือไม่
+    if (bill.residentId !== residentId) {
+      return res.status(403).json({ error: "You don't have permission to pay this bill" })
+    }
+
+    // กำหนดสถานะการชำระเงิน
+    let paymentStatus = "PENDING"
+
+    // ถ้ามีการระบุสถานะมา ให้ใช้สถานะนั้น
+    if (status === "COMPLETED") {
+      paymentStatus = "COMPLETED"
+    }
+
+    // ดึง default payment method (ถ้าไม่มีให้สร้างใหม่)
+    let paymentMethod = await prisma.paymentMethod.findFirst({
+      where: { name: "Bank Transfer" },
+    })
+
+    if (!paymentMethod) {
+      paymentMethod = await prisma.paymentMethod.create({
+        data: {
+          name: "Bank Transfer",
+          description: "โอนเงินผ่านธนาคาร",
+          isActive: true,
+        },
+      })
+    }
+
+    // สร้างข้อมูลการชำระเงิน (รวมถึงบันทึก path ของไฟล์)
+    const payment = await prisma.payment.create({
+      data: {
+        billId: id,
+        paymentMethodId: paymentMethod.id,
+        amount: Number.parseFloat(amount),
+        paymentDate: new Date(paymentDate),
+        status: paymentStatus,
+        slipImagePath: req.file.path, // บันทึก path ของไฟล์
+        verificationResult: verificationResult || null, // บันทึกผลการตรวจสอบ (ถ้ามี)
+      },
+    })
+
+    // อัปเดตสถานะบิล
+    let billStatus = bill.status
+    if (paymentStatus === "COMPLETED") {
+      billStatus = "PAID"
+    } else if (paymentStatus === "PENDING") {
+      billStatus = "PROCESSING" // เปลี่ยนสถานะเป็น "กำลังตรวจสอบ" เมื่อมีการอัปโหลดสลิป
+    }
+
+    await prisma.bill.update({
+      where: { id },
+      data: { status: billStatus },
+    })
+
+    // สร้าง URL สำหรับเข้าถึงไฟล์
+    const apiUrl = process.env.API_URL || "http://localhost:5000"
+    const slipUrl = `${apiUrl}/${req.file.path.replace(/\\/g, "/")}`
+
+    return res.status(200).json({
+      message: "บันทึกการชำระเงินสำเร็จ",
+      payment,
+      billStatus,
+      slipPath: req.file.path,
+      slipUrl: slipUrl,
+    })
+  } catch (error) {
+    console.error("Error creating payment:", error)
+
+    // ลบไฟล์ที่อัปโหลดในกรณีที่เกิดข้อผิดพลาด
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path)
+        console.log("Deleted uploaded file due to error")
+      } catch (unlinkError) {
+        console.error("Error deleting file:", unlinkError)
+      }
+    }
+
+    return res.status(500).json({ error: "เกิดข้อผิดพลาดในการบันทึกการชำระเงิน", details: error.message })
   }
 })
 

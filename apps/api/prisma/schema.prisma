@@ -164,8 +164,12 @@ model Payment {
   paymentDate       DateTime
   transactionId     String?
   status            PaymentStatus @default(PENDING)
+  slipImagePath     String?   // เพิ่มฟิลด์นี้เพื่อเก็บพาธของไฟล์ภาพสลิป
+  verificationResult String?   // เพิ่มฟิลด์นี้เพื่อเก็บผลการตรวจสอบจาก SlipOK API
   createdAt         DateTime  @default(now())
 }
+
+
 
 enum PaymentStatus {
   PENDING

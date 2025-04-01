@@ -17,7 +17,10 @@ export default function PaymentPage() {
   const fileInputRef = useRef(null)
   const router = useRouter()
 
-
+  // เพิ่มตัวแปรสำหรับ QR Code
+  const [qrCodeUrl, setQrCodeUrl] = useState(
+    "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/QR.jpg-oAZhBnSGdzbrI1xySb1fScNC5Y5Os8.jpeg",
+  )
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
@@ -25,6 +28,10 @@ export default function PaymentPage() {
   const [isVerifyingSlip, setIsVerifyingSlip] = useState(false)
   const [slipVerificationResult, setSlipVerificationResult] = useState(null)
 
+  // เพิ่มตัวแปรสำหรับตรวจสอบการเชื่อมต่อ API
+  const [apiConnected, setApiConnected] = useState(true)
+
+  // แก้ไขส่วนของการแสดงบิลปัจจุบัน
   useEffect(() => {
     fetchBillData()
   }, [])
@@ -32,6 +39,7 @@ export default function PaymentPage() {
   const fetchBillData = async () => {
     setIsLoading(true)
     setError(null)
+    setApiConnected(true)
 
     try {
       const token =
@@ -46,38 +54,89 @@ export default function PaymentPage() {
         return
       }
 
-      // ดึงบิลปัจจุบัน
-      const currentBillResponse = await axios.get(`${apiUrl}/api/bills/current`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      console.log("Current bill data:", currentBillResponse.data)
-      setCurrentBill(currentBillResponse.data)
-
-      // ดึงประวัติบิลทั้งหมด
-      const allBillsResponse = await axios.get(`${apiUrl}/api/bills`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      console.log("All bills data:", allBillsResponse.data)
-      setBillHistory(allBillsResponse.data.bills || [])
-    } catch (error) {
-      console.error("Error fetching bill data:", error)
-
-      if (error.response) {
-        if (error.response.status === 404 && error.response.data.error === "No current bill found") {
-          // ไม่มีบิลปัจจุบัน ไม่ถือเป็นข้อผิดพลาด
-          setCurrentBill(null)
-        } else {
-          setError(`เกิดข้อผิดพลาด: ${error.response.data.error || error.message}`)
-        }
-      } else {
-        setError(`เกิดข้อผิดพลาด: ${error.message}`)
+      // ตรวจสอบการเชื่อมต่อกับ API ก่อน
+      try {
+        console.log("Checking API connection...")
+        await axios.get(`${apiUrl}`, { timeout: 5000 })
+        console.log("API connection successful")
+      } catch (connectionError) {
+        console.error("API connection error:", connectionError)
+        setApiConnected(false)
+        setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อหรือลองใหม่ภายหลัง")
+        setIsLoading(false)
+        return
       }
+
+      // ดึงบิลปัจจุบัน
+      try {
+        console.log("Fetching bills from:", `${apiUrl}/api/bills`)
+        const allBillsResponse = await axios.get(`${apiUrl}/api/bills`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        console.log("All bills data:", allBillsResponse.data)
+
+        // กรองเอาเฉพาะบิลที่ยังไม่ได้ชำระเงิน (PENDING, OVERDUE, PROCESSING)
+        const pendingBills = allBillsResponse.data.bills.filter(
+          (bill) => bill.status === "PENDING" || bill.status === "OVERDUE" || bill.status === "PROCESSING",
+        )
+
+        // เรียงลำดับตามวันที่สร้าง (ล่าสุดก่อน)
+        pendingBills.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+        // ใช้��ิลล่าสุดที่ยังไม่ได้ชำระเป็นบิลปัจจุบัน
+        if (pendingBills.length > 0) {
+          setCurrentBill(pendingBills[0])
+        } else {
+          setCurrentBill(null)
+        }
+
+        // เก็บบิลทั้งหมดไว้ใช้ในส่วนประวัติการชำระเงิน
+        setBillHistory(allBillsResponse.data.bills || [])
+      } catch (error) {
+        console.error("Error fetching bills:", error)
+        setBillHistory([])
+        setCurrentBill(null)
+
+        // ถ้าเป็นข้อผิดพลาดเกี่ยวกับการเชื่อมต่อ ให้แสดงข้อความ
+        if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+          setApiConnected(false)
+        }
+      }
+
+      // ลบส่วนนี้ออก เพราะเราไม่ต้องเรียก API endpoint `/api/bills/current` อีกต่อไป
+      // try {
+      //   console.log("Fetching current bill from:", `${apiUrl}/api/bills/current`)
+      //   const currentBillResponse = await axios.get(`${apiUrl}/api/bills/current`, {
+      //     headers: {
+      //       Authorization: `Bearer ${token}`,
+      //     },
+      //   })
+      //
+      //   console.log("Current bill data:", currentBillResponse.data)
+      //   setCurrentBill(currentBillResponse.data)
+      // } catch (error) {
+      //   ...
+      // }
+
+      // ลบส่วนนี้ออก เพราะเราได้ดึงข้อมูลบิลทั้งหมดมาแล้ว
+      // try {
+      //   console.log("Fetching bill history from:", `${apiUrl}/api/bills`)
+      //   const allBillsResponse = await axios.get(`${apiUrl}/api/bills`, {
+      //     headers: {
+      //       Authorization: `Bearer ${token}`,
+      //     },
+      //   })
+      //
+      //   console.log("All bills data:", allBillsResponse.data)
+      //   setBillHistory(allBillsResponse.data.bills || [])
+      // } catch (error) {
+      //   ...
+      // }
+    } catch (error) {
+      console.error("Error in fetchBillData:", error)
 
       // ถ้าเป็นปัญหาเรื่อง authentication ให้ redirect ไปหน้า login
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
@@ -87,12 +146,18 @@ export default function PaymentPage() {
         sessionStorage.removeItem("authToken")
         router.push("/")
       }
+
+      // ถ้าเป็นปัญหาเรื่องการเชื่อมต่อ
+      if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+        setApiConnected(false)
+        setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อหรือลองใหม่ภายหลัง")
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
-  // เพิ่มฟังก์ชันสำหรับการตรวจสอบ slip ด้วย slipok
+  // แก้ไขฟังก์ชันสำหรับการตรวจสอบ slip ด้วย slipok ผ่าน API ของเราเอง
   const verifySlipWithSlipOk = async (file) => {
     if (!file) return null
 
@@ -100,37 +165,86 @@ export default function PaymentPage() {
     setSlipVerificationResult(null)
 
     try {
-      // สร้าง FormData สำหรับอัปโหลดไฟล์ไปยัง slipok API
-      const formData = new FormData()
-      formData.append("slip", file)
+      const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("authToken") ||
+        sessionStorage.getItem("authToken")
 
-      // ในสถานการณ์จริง คุณจะต้องส่งไปยัง slipok API
-      // นี่เป็นเพียงตัวอย่างการจำลองการทำงาน
-      // const response = await axios.post('https://api.slipok.com/verify', formData)
-
-      // จำลองการตอบกลับจาก slipok API
-      // ในสถานการณ์จริง ข้อมูลนี้จะมาจาก API
-      const mockResponse = {
-        success: true,
-        data: {
-          bankName: "KBANK",
-          accountName: "บริษัท หอพัก จำกัด",
-          amount: currentBill ? currentBill.totalAmount : 0,
-          transactionDate: new Date().toISOString(),
-          verified: true,
-          amountMatched: true,
-        },
+      if (!token) {
+        throw new Error("กรุณาเข้าสู่ระบบก่อน")
       }
 
-      console.log("Slip verification result:", mockResponse)
-      setSlipVerificationResult(mockResponse.data)
+      console.log("Verifying slip with file:", file.name, "size:", file.size)
 
-      return mockResponse.data
+      // สร้าง FormData สำหรับอัปโหลดไฟล์ไปยัง API ของเรา
+      const formData = new FormData()
+      // เปลี่ยนชื่อพารามิเตอร์เป็น "file" ตามที่ API ของเราต้องการ
+      formData.append("file", file)
+
+      // ทดสอบเรียก API ทดสอบก่อน
+      try {
+        const testResponse = await axios.get(`${apiUrl}/api/slip/test`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        console.log("Test API response:", testResponse.data)
+      } catch (testError) {
+        console.error("Test API failed:", testError)
+      }
+
+      console.log("Sending request to:", `${apiUrl}/api/slip/verify`)
+
+      // เรียกใช้ API ของเราที่จะส่งต่อไปยัง SlipOK
+      const response = await axios.post(`${apiUrl}/api/slip/verify`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      })
+
+      console.log("Slip verification result:", response.data)
+
+      // ตรวจสอบว่าการตอบกลับถูกต้อง
+      if (response.data && response.data.success) {
+        // แปลงข้อมูลจาก SlipOK API ให้เข้ากับรูปแบบที่ใช้ในแอปพลิเคชัน
+        const verificationResult = {
+          verified: true,
+          bankName: response.data.data.sendingBank || "ไม่ระบุ",
+          accountName: response.data.data.sender?.displayName || response.data.data.sender?.name || "ไม่ระบุ",
+          amount: Number.parseFloat(response.data.data.amount) || 0,
+          transactionDate:
+            response.data.data.transTimestamp || response.data.data.transDate || new Date().toISOString(),
+          transRef: response.data.data.transRef || "",
+          receivingBank: response.data.data.receivingBank || "",
+          amountMatched: currentBill
+            ? Math.abs(Number.parseFloat(response.data.data.amount) - currentBill.totalAmount) < 0.01
+            : false,
+        }
+
+        setSlipVerificationResult(verificationResult)
+        return verificationResult
+      } else {
+        // กรณีที่ API ตอบกลับว่าไม่สำเร็จ
+        console.warn("API returned success=false:", response.data)
+        setSlipVerificationResult({
+          verified: false,
+          error: response.data.message || "ไม่สามารถตรวจสอบสลิปได้",
+        })
+        return null
+      }
     } catch (error) {
       console.error("Error verifying slip:", error)
+
+      if (error.response) {
+        console.error("Error response status:", error.response.status)
+        console.error("Error response data:", error.response.data)
+      }
+
       setSlipVerificationResult({
         verified: false,
-        error: error.message,
+        error: error.message || "เกิดข้อผิดพลาดในการตรวจสอบสลิป",
       })
       return null
     } finally {
@@ -192,6 +306,12 @@ export default function PaymentPage() {
         return
       }
 
+      // ตรวจสอบสลิปก่อนถ้ายังไม่ได้ตรวจสอบ
+      let verificationData = slipVerificationResult
+      if (!verificationData) {
+        verificationData = await verifySlipWithSlipOk(uploadedImage)
+      }
+
       // สร้าง FormData สำหรับอัปโหลดไฟล์
       const formData = new FormData()
       formData.append("slip", uploadedImage)
@@ -199,10 +319,14 @@ export default function PaymentPage() {
       formData.append("paymentDate", new Date().toISOString())
       formData.append("amount", currentBill.totalAmount)
 
-      // เพิ่มข้อมูลการตรวจสอบจาก slipok (ถ้ามี)
-      if (slipVerificationResult) {
-        formData.append("verificationResult", JSON.stringify(slipVerificationResult))
+      // เพิ่มสถานะการชำระเงิน
+      if (verificationData && verificationData.verified && verificationData.amountMatched) {
+        formData.append("status", "COMPLETED")
+      } else {
+        formData.append("status", "PENDING")
       }
+
+      console.log("Sending payment data to:", `${apiUrl}/api/bills/${currentBill.id}/payment`)
 
       // ส่งข้อมูลไปยัง API
       const response = await axios.post(`${apiUrl}/api/bills/${currentBill.id}/payment`, formData, {
@@ -213,7 +337,15 @@ export default function PaymentPage() {
       })
 
       console.log("Payment submitted successfully:", response.data)
-      setSuccess("อัปโหลดหลักฐานการชำระเงินสำเร็จ")
+
+      // แสดงข้อความตามผลการตรวจสอบ
+      if (verificationData && verificationData.verified && verificationData.amountMatched) {
+        setSuccess("อัปโหลดหลักฐานการชำระเงินสำเร็จ และตรวจสอบแล้วว่าถูกต้อง")
+      } else if (verificationData && verificationData.verified) {
+        setSuccess("อัปโหลดหลักฐานการชำระเงินสำเร็จ แต่จำนวนเงินไม่ตรงกับยอดที่ต้องชำระ")
+      } else {
+        setSuccess("อัปโหลดหลักฐานการชำระเงินสำเร็จ รอการตรวจสอบจากผู้ดูแลระบบ")
+      }
 
       // รีเซ็ตฟอร์ม
       setUploadedImage(null)
@@ -295,6 +427,36 @@ export default function PaymentPage() {
     return (
       <div className="pt-16 px-6 min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  // แสดงข้อความเมื่อไม่สามารถเชื่อมต่อกับ API ได้
+  if (!apiConnected) {
+    return (
+      <div className="pt-16 px-6 min-h-screen">
+        <h1 className="text-3xl font-bold mb-6">บิลค่าเช่าและการชำระเงิน</h1>
+
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex items-center">
+          <AlertCircle className="h-5 w-5 mr-2" />
+          <span>ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อหรือลองใหม่ภายหลัง</span>
+        </div>
+
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={fetchBillData}
+            className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                clipRule="evenodd"
+              />
+            </svg>
+            ลองใหม่อีกครั้ง
+          </button>
+        </div>
       </div>
     )
   }
@@ -404,11 +566,7 @@ export default function PaymentPage() {
                     {/* QR Code */}
                     <div className="flex justify-center mb-4">
                       <div className="p-2 border border-gray-200 rounded bg-white">
-                        <img
-                          src={"/img/QR.jpg"}
-                          alt="QR Code สำหรับชำระเงิน"
-                          className="w-64 h-64 object-contain"
-                        />
+                        <img src="/img/QR.jpg" alt="QR Code สำหรับชำระเงิน" className="w-64 h-64 object-contain" />
                       </div>
                     </div>
 
@@ -453,6 +611,7 @@ export default function PaymentPage() {
                       className="hidden"
                       ref={fileInputRef}
                     />
+
                     {previewUrl ? (
                       <div className="mb-3">
                         <img
@@ -493,10 +652,11 @@ export default function PaymentPage() {
                               <span className="text-sm font-medium text-green-700">ตรวจสอบสลิปสำเร็จ</span>
                             </div>
                             <div className="text-xs text-gray-600">
-                              <p>ธนาคาร: {slipVerificationResult.bankName}</p>
-                              <p>ชื่อบัญชี: {slipVerificationResult.accountName}</p>
+                              <p>ธนาคารผู้โอน: {slipVerificationResult.bankName}</p>
+                              <p>ธนาคารผู้รับ: {slipVerificationResult.receivingBank}</p>
                               <p>จำนวนเงิน: {formatCurrency(slipVerificationResult.amount)}</p>
                               <p>วันที่โอน: {formatDate(slipVerificationResult.transactionDate)}</p>
+                              <p>เลขอ้างอิง: {slipVerificationResult.transRef}</p>
                               {slipVerificationResult.amountMatched ? (
                                 <p className="text-green-600 font-medium">✓ จำนวนเงินถูกต้อง</p>
                               ) : (
