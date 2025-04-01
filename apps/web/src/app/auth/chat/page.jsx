@@ -44,34 +44,55 @@ export default function ChatPage() {
       return
     }
 
+    console.log("Connecting to Socket.io at:", apiUrl)
+
     // สร้างการเชื่อมต่อ Socket.io
     const socketInstance = io(apiUrl, {
       auth: { token },
-      transports: ["websocket", "polling"], // เพิ่มตัวเลือกนี้
-      reconnectionAttempts: 5, // พยายามเชื่อมต่อใหม่ 5 ครั้ง
-      reconnectionDelay: 1000, // รอ 1 วินาทีก่อนลองเชื่อมต่อใหม่
-      forceNew: true, // บังคับให้สร้างการเชื่อมต่อใหม่ทุกครั้ง
+      transports: ["polling", "websocket"],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 20000,
+      forceNew: true,
     })
 
     socketInstance.on("connect", () => {
-      console.log("Socket connected")
+      console.log("Socket connected with ID:", socketInstance.id)
       setIsConnected(true)
+
+      // เมื่อเชื่อมต่อสำเร็จ ให้ดึงข้อมูลการสนทนาและจำนวนข้อความที่ยังไม่ได้อ่าน
+      fetchConversations()
+      fetchUnreadCounts()
+
+      // ถ้ามีการเลือกการสนทนาอยู่แล้ว ให้เข้าร่วมห้องสนทนานั้น
+      if (selectedConversation) {
+        socketInstance.emit("join-conversation", selectedConversation.id)
+        fetchMessages(selectedConversation.id)
+      }
     })
 
-    socketInstance.on("disconnect", () => {
-      console.log("Socket disconnected")
+    socketInstance.on("disconnect", (reason) => {
+      console.log("Socket disconnected, reason:", reason)
       setIsConnected(false)
     })
 
     socketInstance.on("connect_error", (err) => {
-      console.error("Socket connection error:", err)
+      console.error("Socket connection error:", err.message)
       setError(`การเชื่อมต่อผิดพลาด: ${err.message}`)
     })
 
     // รับข้อความใหม่
     socketInstance.on("new-message", (message) => {
+      console.log("New message received:", message)
+
       if (selectedConversation && message.conversationId === selectedConversation.id) {
-        setMessages((prevMessages) => [...prevMessages, message])
+        setMessages((prevMessages) => {
+          // ตรวจสอบว่าข้อความนี้มีอยู่แล้วหรือไม่
+          const messageExists = prevMessages.some((msg) => msg.id === message.id)
+          if (messageExists) return prevMessages
+
+          return [...prevMessages, message]
+        })
 
         // ทำเครื่องหมายว่าอ่านแล้วถ้าเป็นข้อความจากผู้อื่น
         if (message.senderId !== userData?.id) {
@@ -107,6 +128,8 @@ export default function ChatPage() {
 
     // รับการแจ้งเตือน
     socketInstance.on("notification", (notification) => {
+      console.log("Notification received:", notification)
+
       if (notification.type === "new-message") {
         // อัปเดตจำนวนข้อความที่ยังไม่ได้อ่าน
         if (selectedConversation?.id !== notification.conversationId) {
@@ -117,12 +140,52 @@ export default function ChatPage() {
 
           setTotalUnread((prev) => prev + 1)
         }
+
+        // อัปเดตรายการสนทนาเพื่อแสดงข้อความล่าสุด
+        setConversations((prevConversations) => {
+          const conversationExists = prevConversations.some((conv) => conv.id === notification.conversationId)
+
+          if (!conversationExists) {
+            // ถ้าไม่พบการสนทนานี้ในรายการ ให้ดึงข้อมูลการสนทนาใหม่ทั้งหมด
+            fetchConversations()
+            return prevConversations
+          }
+
+          const updatedConversations = prevConversations.map((conv) => {
+            if (conv.id === notification.conversationId) {
+              return {
+                ...conv,
+                lastMessage: {
+                  id: notification.message.id,
+                  content: notification.message.content,
+                  senderId: notification.message.senderId,
+                  createdAt: notification.message.createdAt,
+                },
+              }
+            }
+            return conv
+          })
+
+          // เรียงลำดับสนทนาใหม่
+          return updatedConversations.sort((a, b) => {
+            if (!a.lastMessage) return 1
+            if (!b.lastMessage) return -1
+            return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
+          })
+        })
       }
     })
 
     // รับการสนทนาใหม่
     socketInstance.on("new-conversation", (conversation) => {
-      setConversations((prev) => [conversation, ...prev])
+      console.log("New conversation received:", conversation)
+      setConversations((prev) => {
+        // ตรวจสอบว่าการสนทนานี้มีอยู่แล้วหรือไม่
+        const conversationExists = prev.some((conv) => conv.id === conversation.id)
+        if (conversationExists) return prev
+
+        return [conversation, ...prev]
+      })
     })
 
     // รับสถานะการพิมพ์
@@ -160,6 +223,7 @@ export default function ChatPage() {
     // ทำความสะอาดเมื่อคอมโพเนนต์ถูกทำลาย
     return () => {
       if (socketInstance) {
+        console.log("Disconnecting socket...")
         socketInstance.disconnect()
       }
       if (typingTimeoutRef.current) {
@@ -168,21 +232,20 @@ export default function ChatPage() {
     }
   }, [apiUrl, router])
 
+  // ดึงข้อมูลเริ่มต้นเมื่อโหลดคอมโพเนนต์
   useEffect(() => {
     fetchUserData()
-    fetchConversations()
-    fetchUnreadCounts()
+    // fetchConversations() และ fetchUnreadCounts() จะถูกเรียกหลังจากเชื่อมต่อ socket สำเร็จ
   }, [])
 
   useEffect(() => {
-    if (selectedConversation) {
+    if (selectedConversation && socket && isConnected) {
+      console.log("Joining conversation:", selectedConversation.id)
       fetchMessages(selectedConversation.id)
       setIsMobileMenuOpen(false)
 
       // เข้าร่วมห้องสนทนา
-      if (socket && isConnected) {
-        socket.emit("join-conversation", selectedConversation.id)
-      }
+      socket.emit("join-conversation", selectedConversation.id)
 
       // รีเซ็ตจำนวนข้อความที่ยังไม่ได้อ่านสำหรับการสนทนานี้
       if (unreadCounts[selectedConversation.id]) {
@@ -198,6 +261,7 @@ export default function ChatPage() {
     return () => {
       // ออกจากห้องสนทนาเมื่อเปลี่ยนการสนทนา
       if (socket && isConnected && selectedConversation) {
+        console.log("Leaving conversation:", selectedConversation.id)
         socket.emit("leave-conversation", selectedConversation.id)
       }
     }
@@ -369,9 +433,35 @@ export default function ChatPage() {
         socket.emit("stop-typing", selectedConversation.id)
       }
 
+      // เก็บข้อความที่จะส่ง
+      const messageContent = newMessage.trim()
+
+      // ล้างข้อความใหม่ทันที
+      setNewMessage("")
+
+      // สร้างข้อความชั่วคราวเพื่อแสดงในหน้าจอ
+      const tempMessage = {
+        id: `temp-${Date.now()}`,
+        content: messageContent,
+        senderId: userData.id,
+        sender: {
+          id: userData.id,
+          fullName: userData.fullName,
+          username: userData.username,
+        },
+        conversationId: selectedConversation.id,
+        createdAt: new Date().toISOString(),
+        isRead: false,
+        isTemp: true, // เพิ่มเครื่องหมายว่าเป็นข้อความชั่วคราว
+      }
+
+      // เพิ่มข้อความชั่วคราวเข้าไปในรายการข้อความ
+      setMessages((prev) => [...prev, tempMessage])
+
+      // ส่งข้อความไปยังเซิร์ฟเวอร์
       const response = await axios.post(
         `${apiUrl}/api/chat/conversations/${selectedConversation.id}/messages`,
-        { content: newMessage },
+        { content: messageContent },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -382,8 +472,8 @@ export default function ChatPage() {
 
       console.log("Message sent:", response.data)
 
-      // ล้างข้อความใหม่
-      setNewMessage("")
+      // แทนที่ข้อความชั่วคราวด้วยข้อความจริง
+      setMessages((prev) => prev.map((msg) => (msg.id === tempMessage.id ? response.data.message : msg)))
 
       // โฟกัสที่ช่องข้อความใหม่
       if (messageInputRef.current) {
@@ -392,6 +482,9 @@ export default function ChatPage() {
     } catch (error) {
       console.error("Error sending message:", error)
       setError("ไม่สามารถส่งข้อความได้")
+
+      // ลบข้อความชั่วคราวที่ไม่สามารถส่งได้
+      setMessages((prev) => prev.filter((msg) => !msg.isTemp))
     }
   }
 
@@ -771,7 +864,7 @@ export default function ChatPage() {
 
       {/* Modal สำหรับแสดงรายชื่อผู้ใช้ */}
       {showUserList && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-xl font-semibold">เริ่มการสนทนาใหม่</h2>
