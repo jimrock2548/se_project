@@ -1,8 +1,38 @@
 const prisma = require("../config/prisma")
 
+// ฟังก์ชันสำหรับลบประกาศที่เก่ากว่า 14 วัน
+async function deleteOldAnnouncements() {
+  try {
+    // คำนวณวันที่ 14 วันที่แล้ว
+    const fourteenDaysAgo = new Date()
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
+
+    // ลบประกาศที่เก่ากว่า 14 วัน
+    const deletedAnnouncements = await prisma.announcement.deleteMany({
+      where: {
+        publishDate: {
+          lt: fourteenDaysAgo,
+        },
+      },
+    })
+
+    if (deletedAnnouncements.count > 0) {
+      console.log(`ลบประกาศเก่าแล้ว ${deletedAnnouncements.count} รายการ`)
+    }
+
+    return deletedAnnouncements.count
+  } catch (error) {
+    console.error("เกิดข้อผิดพลาดในการลบประกาศเก่า:", error)
+    return 0
+  }
+}
+
 // Get all announcements
 exports.getAllAnnouncements = async (req, res) => {
   try {
+    // ลบประกาศเก่าก่อนที่จะดึงข้อมูล
+    await deleteOldAnnouncements()
+
     const { limit } = req.query
 
     const where = {}

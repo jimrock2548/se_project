@@ -186,6 +186,11 @@ export default function LandlordLayout({ children }) {
                 👤 รายชื่อผู้อยู่อาศัย / จัดการห้อง
               </Link>
             </li>
+            <li className="w-full pb-1">
+              <Link href="/landlord/chat" className="hover:bg-base-300 rounded-lg text-lg">
+                💬 แชท
+              </Link>
+            </li>
             <li className="w-full border-t-1 border-base-300 pt-1">
               <Link href="/landlord/meter-management" className="hover:bg-base-300 rounded-lg text-lg">
                 ⚙️ ตั้งค่า มิเตอร์

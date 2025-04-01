@@ -157,7 +157,7 @@ export default function AuthLayoutClient({ children }) {
             </li>
             <li className="w-full py-1">
               <Link href="/auth/chat" className="hover:bg-base-300 rounded-lg text-lg">
-                ✉️ แชท
+                💬 แชท
               </Link>
             </li>
             <li className="w-full border-t-1 border-base-300 pt-1">

@@ -580,7 +580,8 @@ export default function PaymentPage() {
                     <div className="text-center mb-4">
                       <p className="text-[#4db6ac] text-lg font-medium">สแกน QR เพื่อโอนเข้าบัญชี</p>
                       <p className="font-medium">ชื่อ: ด.ช. ศรสรัน พลแสน</p>
-                      <p className="text-gray-700">บัญชี: xxx-x-x2738-x</p>
+                      <p className="font-medium">หรือ โอนเงินผ่านธนาคาร</p>
+                      <p className="text-gray-700">บัญชี กสิกร : 103-1-12738-0</p>
                       <p className="text-gray-500 text-sm">เลขที่อ้างอิง: 00499907307693</p>
                     </div>
 
@@ -807,7 +808,7 @@ export default function PaymentPage() {
                             )}
                           </div>
                         ) : (
-                          <p className="text-gray-500 mt-2">ไม่มีภาพใบเสร็จ</p>
+                          <p className="text-gray-500 mt-2"></p>
                         )}
 
                         <button

@@ -22,6 +22,16 @@ const utilityTypeRoutes = require("./src/routes/utilityTypeRoutes")
 const slipRoutes = require("./src/routes/slipRoutes")
 const chatRoutes = require("./src/routes/chatRoutes")
 
+// Import cron job for deleting old announcements
+try {
+  const { scheduleDailyCleanup } = require("./src/cron/deleteOldAnnouncements")
+  // Start the cron job
+  scheduleDailyCleanup()
+  console.log("ระบบลบประกาศอัตโนมัติทำงานแล้ว")
+} catch (error) {
+  console.error("ไม่สามารถเริ่มต้นระบบลบประกาศอัตโนมัติได้:", error)
+}
+
 // สร้าง Express app
 const app = express()
 const PORT = process.env.PORT || 5000

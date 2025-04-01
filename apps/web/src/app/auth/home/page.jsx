@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import axios from "axios"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle } from 'lucide-react'
 import Link from "next/link"
-import { Loader2 } from "lucide-react"
+import { Loader2 } from 'lucide-react'
 
 export default function HomePage() {
   const [currentBill, setCurrentBill] = useState(null)
@@ -21,6 +21,8 @@ export default function HomePage() {
   const router = useRouter()
   const [userData, setUserData] = useState(null)
   const [billData, setBillData] = useState(null)
+  // เพิ่มตัวแปรสำหรับเก็บข้อมูลห้องจาก API profile
+  const [userRoomNumber, setUserRoomNumber] = useState(null)
 
   // เพิ่มตัวแปรสำหรับการตรวจสอบ slip
   const [isVerifyingSlip, setIsVerifyingSlip] = useState(false)
@@ -64,6 +66,93 @@ export default function HomePage() {
         setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อหรือลองใหม่ภายหลัง")
         setIsLoading(false)
         return
+      }
+
+      // เพิ่มการเรียก API /api/users/profile เพื่อดึงข้อมูลห้อง
+      try {
+        console.log("Fetching user profile from:", `${apiUrl}/api/users/profile`)
+        const profileResponse = await axios.get(`${apiUrl}/api/users/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        console.log("User profile data:", profileResponse.data)
+        
+        // ตรวจสอบโครงสร้างข้อมูลที่ได้รับ
+        if (profileResponse.data && profileResponse.data.user) {
+          // ถ้าข้อมูลอยู่ใน user
+          setUserData(profileResponse.data.user)
+          
+          // ตรวจสอบว่ามีข้อมูลห้องหรือไม่
+          if (profileResponse.data.user.resident && profileResponse.data.user.resident.room) {
+            setUserRoomNumber(profileResponse.data.user.resident.room.roomNumber)
+          } else if (profileResponse.data.user.roomNumber) {
+            setUserRoomNumber(profileResponse.data.user.roomNumber)
+          }
+          
+          // บันทึกข้อมูลลง localStorage
+          localStorage.setItem("user", JSON.stringify(profileResponse.data.user))
+        } else {
+          // ถ้าข้อมูลไม่ได้อยู่ใน user
+          setUserData(profileResponse.data)
+          
+          // ตรวจสอบว่ามีข้อมูลห้องหรือไม่
+          if (profileResponse.data.resident && profileResponse.data.resident.room) {
+            setUserRoomNumber(profileResponse.data.resident.room.roomNumber)
+          } else if (profileResponse.data.roomNumber) {
+            setUserRoomNumber(profileResponse.data.roomNumber)
+          }
+          
+          // บันทึกข้อมูลลง localStorage
+          localStorage.setItem("user", JSON.stringify(profileResponse.data))
+        }
+        
+        // แสดงโครงสร้างข้อมูลทั้งหมดเพื่อตรวจสอบ
+        console.log("Full user data structure:", JSON.stringify(profileResponse.data, null, 2))
+      } catch (profileError) {
+        console.error("Error fetching user profile:", profileError)
+        // ถ้าเรียก API ไม่สำเร็จ ให้ใช้ข้อมูลจาก localStorage
+        try {
+          const userDataFromStorage = JSON.parse(localStorage.getItem("user") || "{}")
+          console.log("User data from localStorage:", userDataFromStorage)
+          setUserData(userDataFromStorage)
+        } catch (storageError) {
+          console.error("Error parsing user data from localStorage:", storageError)
+          setUserData({})
+        }
+      }
+
+      // ดึงข้อมูลห้องโดยตรง (ถ้ายังไม่มีข้อมูลห้อง)
+      if (!userRoomNumber) {
+        try {
+          console.log("Fetching rooms data...")
+          const roomsResponse = await axios.get(`${apiUrl}/api/rooms`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+          
+          console.log("Rooms data:", roomsResponse.data)
+          
+          // ตรวจสอบว่ามีข้อมูลห้องหรือไม่
+          if (roomsResponse.data && roomsResponse.data.rooms) {
+            // หาห้องที่ตรงกับผู้ใช้ปัจจุบัน (ถ้ามี userId)
+            if (userData && userData.id) {
+              const userRoom = roomsResponse.data.rooms.find(room => 
+                room.resident && room.resident.userId === userData.id
+              )
+              
+              if (userRoom) {
+                console.log("Found user room:", userRoom)
+                setUserRoomNumber(userRoom.roomNumber)
+                localStorage.setItem("roomNumber", userRoom.roomNumber)
+              }
+            }
+          }
+        } catch (roomsError) {
+          console.error("Error fetching rooms data:", roomsError)
+        }
       }
 
       // ดึงบิลปัจจุบัน
@@ -115,17 +204,6 @@ export default function HomePage() {
         setAnnouncements([])
       }
 
-      // ดึงข้อมูลผู้ใช้
-      try {
-        // ดึงข้อมูลผู้ใช้จาก localStorage
-        const userDataFromStorage = JSON.parse(localStorage.getItem("user") || "{}")
-        console.log("User data from localStorage:", userDataFromStorage)
-        setUserData(userDataFromStorage)
-      } catch (userError) {
-        console.error("Error parsing user data from localStorage:", userError)
-        setUserData({})
-      }
-
       // ดึงข้อมูลบิลค่าเช่า
       try {
         console.log("Fetching bills from:", `${apiUrl}/api/bills`)
@@ -157,6 +235,12 @@ export default function HomePage() {
             status: currentBill.status,
             createdAt: currentBill.createdAt,
           })
+          
+          // ถ้ามีข้อมูลห้องจากบิล ให้บันทึกไว้
+          if (currentBill.resident?.room?.roomNumber) {
+            setUserRoomNumber(currentBill.resident.room.roomNumber)
+            localStorage.setItem("roomNumber", currentBill.resident.room.roomNumber)
+          }
         } else {
           setBillData(null)
         }
@@ -183,6 +267,15 @@ export default function HomePage() {
       }
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // ฟังก์ชันสำหรับกรอกเลขห้องเอง
+  const handleSetRoomNumber = () => {
+    const roomNumber = prompt("กรุณากรอกเลขห้องของคุณ:")
+    if (roomNumber) {
+      localStorage.setItem("roomNumber", roomNumber)
+      setUserRoomNumber(roomNumber)
     }
   }
 
@@ -213,10 +306,9 @@ export default function HomePage() {
     localStorage.removeItem("authToken")
     sessionStorage.removeItem("authToken")
     localStorage.removeItem("user")
+    localStorage.removeItem("roomNumber")
     router.push("/")
   }
-
-
 
   if (isLoading) {
     return (
@@ -308,13 +400,25 @@ export default function HomePage() {
               <div className="card-body w-full">
                 <div className="text-xl">
                   <b>ชื่อ:</b>{" "}
-                  {userData?.fullName || JSON.parse(localStorage.getItem("user") || "{}")?.fullName || "ไม่พบข้อมูลผู้ใช้"}
+                  {userData?.fullName || 
+                   (userData?.user && userData.user.fullName) || 
+                   JSON.parse(localStorage.getItem("user") || "{}")?.fullName || 
+                   "ไม่พบข้อมูลผู้ใช้"}
                 </div>
                 <div className="text-lg">
                   <b>เลขห้อง:</b>{" "}
-                  {billData?.roomNumber ||
-                    JSON.parse(localStorage.getItem("user") || "{}")?.roomNumber ||
-                    "ไม่พบข้อมูลห้อง"}
+                  {billData?.roomNumber || 
+                   userRoomNumber || 
+                   localStorage.getItem("roomNumber") || 
+                   "ไม่พบข้อมูลห้อง"}
+                  {!billData?.roomNumber && !userRoomNumber && !localStorage.getItem("roomNumber") && (
+                    <button 
+                      onClick={handleSetRoomNumber}
+                      className="text-xs text-blue-500 hover:underline ml-2"
+                    >
+                      (กรอกเลขห้อง)
+                    </button>
+                  )}
                 </div>
                 <div className="text-lg">
                   <b>ราคา:</b> {billData?.totalAmount?.toLocaleString() || "0"} บาท
@@ -335,4 +439,3 @@ export default function HomePage() {
     </>
   )
 }
-
