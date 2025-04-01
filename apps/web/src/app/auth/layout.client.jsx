@@ -2,30 +2,54 @@
 import "../globals.css"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { themeChange } from "theme-change"
+import axios from "axios"
 
 export default function AuthLayoutClient({ children }) {
-  const [isNight, setIsNight] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userData, setUserData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
   useEffect(() => {
     // Check if user is logged in
-    const token = sessionStorage.getItem("authToken") || localStorage.getItem("authToken")
-    setIsLoggedIn(!!token)
+    const storedToken = sessionStorage.getItem("authToken") || localStorage.getItem("authToken")
 
-    // Get user data from session storage
-    const storedUserData = sessionStorage.getItem("userData")
-    if (storedUserData) {
+    const fetchUserData = async () => {
+      if (!storedToken) {
+        setLoading(false)
+        return
+      }
+
       try {
-        const parsedUserData = JSON.parse(storedUserData)
-        setUserData(parsedUserData)
+        console.log("Fetching user data with token:", storedToken)
+        const response = await axios.get(`${apiUrl}/api/users/profile`, {
+          headers: {
+            Authorization: `Bearer ${storedToken}`,
+          },
+        })
+        console.log("User data response:", response.data)
+        setUserData(response.data)
+        setIsLoggedIn(true)
+        setLoading(false)
       } catch (error) {
-        console.error("Error parsing user data:", error)
+        console.error("Error fetching user data:", error)
+        setLoading(false)
       }
     }
-  }, [])
 
+    fetchUserData()
+  }, [apiUrl])
+
+  // Function to handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("authToken")
+    sessionStorage.removeItem("authToken")
+    setIsLoggedIn(false)
+    setUserData(null)
+    window.location.href = "/"
+  }
+
+  
 
   return (
     <>
@@ -37,7 +61,6 @@ export default function AuthLayoutClient({ children }) {
         {/* Main Content */}
         <div className="drawer-content flex flex-col">
           {/* Navbar */}
-
           <div className="navbar bg-base-100 p-4 shadow-md">
             <div className="flex-none">
               <label htmlFor="my-drawer" className="btn btn-square btn-ghost">
@@ -45,7 +68,7 @@ export default function AuthLayoutClient({ children }) {
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
-                  className="inline -block text-base-content h-5 w-5 stroke-current"
+                  className="inline-block text-base-content h-5 w-5 stroke-current"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
                 </svg>
@@ -53,14 +76,65 @@ export default function AuthLayoutClient({ children }) {
             </div>
 
             <div className="flex-1 text-base-content text-3xl font-bold p-2">S.T. APARTMENT</div>
+
+            <div className="flex-none">
+              <div className="dropdown dropdown-bottom dropdown-end">
+                <label tabIndex={0} className="btn btn-ghost btn-circle">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    className="inline-block text-base-content h-5 w-5 stroke-current"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"
+                    ></path>
+                  </svg>
+                </label>
+                <ul
+                  tabIndex={0}
+                  className="dropdown-content menu bg-base-content text-base-100 rounded-box w-52 p-2 shadow"
+                >
+                  <li>
+                    <Link href="/auth/home" className="hover:bg-info-content rounded-lg">
+                      หน้าแรก
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/auth/payment" className="hover:bg-info-content rounded-lg">
+                      ชำระค่าเช่า
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/auth/chat" className="hover:bg-info-content rounded-lg">
+                      แชท
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/auth/report" className="hover:bg-info-content rounded-lg">
+                      รายงาน
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/auth/setting" className="hover:bg-info-content rounded-lg">
+                      ตั้งค่า
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
 
           {/* Children Content */}
           <main className="p-6 flex-grow">{children}</main>
+
+          
         </div>
 
         {/* Sidebar Content */}
-
         <div className="drawer-side z-50">
           <label htmlFor="my-drawer" className="drawer-overlay"></label>
 
@@ -68,13 +142,7 @@ export default function AuthLayoutClient({ children }) {
             <div className="text-base-content text-3xl font-bold p-2 pt-1">S.T. APARTMENT</div>
 
             {/* Profile Name */}
-
-            <div className="m-4 text-center">
-              <div className="text-2xl font-bold pb-2">{userData?.fullName || "ผู้ใช้งาน"}</div>
-              <p>
-                <d>เลขที่ห้อง :</d> {userData?.resident?.roomId ? userData.resident.roomId : "ไม่ระบุ"}
-              </p>
-            </div>
+           
 
             {/* Sidebar Menu */}
             <li className="w-full border-t-1 border-base-300 pt-2">
@@ -82,7 +150,7 @@ export default function AuthLayoutClient({ children }) {
                 🏠 หน้าแรก
               </Link>
             </li>
-            <li className="w-full ">
+            <li className="w-full">
               <Link href="/auth/payment" className="hover:bg-base-300 rounded-lg text-lg">
                 💵 ชำระค่าเช่า
               </Link>
@@ -92,21 +160,21 @@ export default function AuthLayoutClient({ children }) {
                 ✉️ แชท
               </Link>
             </li>
-
             <li className="w-full border-t-1 border-base-300 pt-1">
               <Link href="/auth/report" className="hover:bg-base-300 rounded-lg text-lg">
                 📢 รายงาน
               </Link>
             </li>
-            <li className="w-full ">
+            <li className="w-full">
               <Link href="/auth/setting" className="hover:bg-base-300 rounded-lg text-lg">
                 ⚙️ ตั้งค่าโปรไฟล์
               </Link>
             </li>
+
             <div className="pt-28">
               {isLoggedIn ? (
-                <button className="btn btn-outline btn-primary">
-                  <Link href="/logout">ออกจากระบบ</Link>
+                <button onClick={handleLogout} className="btn btn-outline btn-primary">
+                  ออกจากระบบ
                 </button>
               ) : (
                 <div className="space-x-1 flex items-baseline">
@@ -126,49 +194,6 @@ export default function AuthLayoutClient({ children }) {
           </ul>
         </div>
       </div>
-      <footer className="footer bg-base-100 text-neutral-content p-10 mt-auto">
-        <nav>
-          <h6 className="footer-title text-base">Social</h6>
-          <div className="grid grid-flow-col gap-4 ">
-            <a>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                color="color-base"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                className="fill-current"
-              >
-                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"></path>
-              </svg>
-            </a>
-            <a>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                color="color-base"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                className="fill-current"
-              >
-                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
-              </svg>
-            </a>
-            <a>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                color="color-base"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                className="fill-current"
-              >
-                <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"></path>
-              </svg>
-            </a>
-          </div>
-        </nav>
-      </footer>
     </>
   )
 }
