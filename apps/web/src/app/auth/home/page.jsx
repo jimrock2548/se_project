@@ -31,7 +31,7 @@ export default function HomePage() {
   // เพิ่มตัวแปรสำหรับตรวจสอบการเชื่อมต่อ API
   const [apiConnected, setApiConnected] = useState(true)
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL
 
   useEffect(() => {
     fetchData()
