@@ -204,8 +204,8 @@ export default function AuthLayoutClient({ children }) {
               </Link>
             </li>
             <li className="w-full ">
-              <Link href="/auth/setting_" className="hover:bg-base-300 rounded-lg text-lg">
-                ⚙️ ตั้งค่า
+              <Link href="/auth/setting" className="hover:bg-base-300 rounded-lg text-lg">
+                ⚙️ ตั้งค่าโปรไฟล์
               </Link>
             </li>
             <div className="pt-28">
