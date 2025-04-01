@@ -83,7 +83,6 @@ export default function RegisterPage() {
     <>
       <div
         className="hero min-h-screen"
-        style={{ backgroundImage: "url(https://img.daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.webp)" }}
       >
         <div className="hero-content flex-col lg:flex-row-reverse">
           <div className="card bg-base-100 bg-opacity-50 w-full max-w-md shrink-0 shadow-2xl m-56 border-1">
@@ -182,7 +181,7 @@ export default function RegisterPage() {
               </div>
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text text-black">Password</span>
+                  <span className="label-text text-black ">Password</span>
                 </label>
                 <input
                   type="password"
@@ -212,14 +211,6 @@ export default function RegisterPage() {
                 <button className="btn glass text-black" type="submit" disabled={isLoading}>
                   {isLoading ? "กำลังลงทะเบียน..." : "Register"}
                 </button>
-              </div>
-              <div className="text-center label-text-alt py-2">
-                <h3 className="text-black">
-                  Already have an account?
-                  <Link href="/" className="font-bold text-black ps-1">
-                    Login
-                  </Link>
-                </h3>
               </div>
             </form>
           </div>
